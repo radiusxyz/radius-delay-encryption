@@ -28,7 +28,7 @@ use super::{LIMB_COUNT, LIMB_WIDTH, RATE, T};
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct KeyValidationPublicInput {
     pub k_two: BigUint,
-    pub k_hash_value: PoseidonHashValue,
+    pub k_hash_value: HashValue,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]

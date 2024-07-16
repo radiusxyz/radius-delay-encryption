@@ -2,7 +2,6 @@ pub mod key_validation_circuit;
 pub mod sigma_protocol;
 
 pub mod key_validation_zkp;
-
 use std::fs::File;
 use std::io::Write;
 use std::str::FromStr;
@@ -15,6 +14,14 @@ use halo2_proofs::poly::kzg::commitment::ParamsKZG;
 use num_bigint::{BigUint, RandomBits};
 use rand::{thread_rng, Rng};
 use serde::{Deserialize, Serialize};
+
+use crate::time_lock_puzzle::key_validation_zkp::{
+    prove as prove_valid_time_lock_puzzle_zkp, verify as verify_valid_time_lock_puzzle_zkp,
+    KeyValidationParam, KeyValidationPublicInput, KeyValidationSecretInput,
+};
+use crate::time_lock_puzzle::sigma_protocol::{
+    verify as verify_sigma_protocol, SigmaProtocolParam, SigmaProtocolPublicInput,
+};
 
 const BITS_LEN: usize = 2048;
 const LIMB_WIDTH: usize = 64;
@@ -64,10 +71,8 @@ pub fn setup(t: u32) -> TimeLockPuzzleParam {
     let y_two: BigUint = (&y * &y) % &n;
 
     TimeLockPuzzleParam {
-        // t,
         g: g.clone(),
         n: n.clone(),
-        // y: y.clone(),
         y_two: y_two.clone(),
     }
 }
@@ -106,53 +111,68 @@ pub fn get_decryption_key(o: BigUint, t: u32, n: BigUint) -> Result<HashValue, S
     Ok(encryption_key)
 }
 
-// pub fn verify_time_lock_puzzle(
-//     time_lock_puzzle_public_input: TimeLockPuzzlePublicInput,
-//     time_lock_puzzle_proof: String,
-//     tlp_param_vec: &[u8],
-//     tlp_verifying_key_vec: &[u8],
-// ) -> bool {
-//     let s3_big = BigUint::parse_bytes(time_lock_puzzle_public_input.s3.as_bytes(), 10).unwrap();
+pub fn prove_time_lock_puzzle(
+    param: &ParamsKZG<Bn256>,
+    proving_key: &ProvingKey<G1Affine>,
+    time_lock_puzzle_public_input: TimeLockPuzzlePublicInput,
+    time_lock_puzzle_secret_input: TimeLockPuzzleSecretInput,
+    time_lock_puzzle_param: TimeLockPuzzleParam,
+) -> Vec<u8> {
+    let key_validation_param = KeyValidationParam {
+        n: time_lock_puzzle_param.n.clone(),
+    };
+    let key_validation_public_input = KeyValidationPublicInput {
+        k_two: time_lock_puzzle_public_input.k_two.clone(),
+        k_hash_value: time_lock_puzzle_public_input.k_hash_value.clone(),
+    };
+    let key_validation_secret_input = KeyValidationSecretInput {
+        k: time_lock_puzzle_secret_input.k.clone(),
+    };
 
-//     // 2. verify proof for time_lock puzzle
-//     let bits_len = KeyValidationCircuit::<Fr, 5, 4>::BITS_LEN as u32;
-//     let limb_width = KeyValidationCircuit::<Fr, 5, 4>::LIMB_WIDTH;
-//     let num_limbs = bits_len as usize / limb_width;
+    let proof = prove_valid_time_lock_puzzle_zkp(
+        &param,
+        &proving_key,
+        &key_validation_param,
+        &key_validation_public_input,
+        &key_validation_secret_input,
+    );
 
-//     let tlp_param = ParamsKZG::<Bn256>::read(&mut BufReader::new(tlp_param_vec)).unwrap();
-//     // Verifying key
-//     let tlp_vk = VerifyingKey::<G1Affine>::read::<BufReader<_>, KeyValidationCircuit<Fr, 5, 4>>(
-//         &mut BufReader::new(tlp_verifying_key_vec),
-//         RawBytes,
-//     )
-//     .expect("Failed to read vk");
+    proof
+}
 
-//     let k_squared_limbs = decompose_big::<Fr>(s3_big.clone(), num_limbs, limb_width);
-//     let mut tlp_public_inputs = k_squared_limbs;
+pub fn verify_time_lock_puzzle(
+    param: &ParamsKZG<Bn256>,
+    verifying_key: &VerifyingKey<G1Affine>,
+    time_lock_puzzle_public_input: &TimeLockPuzzlePublicInput,
+    time_lock_puzzle_param: &TimeLockPuzzleParam,
+    proof: &[u8],
+) -> bool {
+    let sigma_protocol_public_input = SigmaProtocolPublicInput {
+        r1: time_lock_puzzle_public_input.r1.clone(),
+        r2: time_lock_puzzle_public_input.r2.clone(),
+        z: time_lock_puzzle_public_input.z.clone(),
+        o: time_lock_puzzle_public_input.o.clone(),
+        k_two: time_lock_puzzle_public_input.k_two.clone(),
+    };
+    let sigma_protocol_param = SigmaProtocolParam {
+        n: time_lock_puzzle_param.n.clone(),
+        g: time_lock_puzzle_param.g.clone(),
+        y_two: time_lock_puzzle_param.y_two.clone(),
+    };
 
-//     let k_hashed: HashedK =
-//         serde_json::from_str(&time_lock_puzzle_public_input.commitment).unwrap();
-//     tlp_public_inputs.push(Fr::from_bytes(&k_hashed.hashed_1).unwrap());
-//     tlp_public_inputs.push(Fr::from_bytes(&k_hashed.hashed_2).unwrap());
-//     let tlp_proof_vec = hex::decode(time_lock_puzzle_proof).unwrap();
+    let is_valid = verify_sigma_protocol(&sigma_protocol_public_input, &sigma_protocol_param);
 
-//     let mut tlp_transcript: Blake2bRead<&[u8], _, Challenge255<_>> =
-//         TranscriptReadBuffer::<_, G1Affine, _>::init(tlp_proof_vec.as_slice());
-//     let tlp_verified = verify_proof::<_, VerifierGWC<_>, _, _, _>(
-//         tlp_param.verifier_params(),
-//         &tlp_vk,
-//         AccumulatorStrategy::new(tlp_param.verifier_params()),
-//         &[&[&tlp_public_inputs]],
-//         &mut tlp_transcript,
-//     );
-//     let tlp_result = VerificationStrategy::<_, VerifierGWC<_>>::finalize(tlp_verified.unwrap());
-//     if !tlp_result {
-//         println!("verification process of tlp proof");
-//         return false;
-//     }
+    if !is_valid {
+        return false;
+    }
 
-//     true
-// }
+    let key_validation_public_input = KeyValidationPublicInput {
+        k_two: time_lock_puzzle_public_input.k_two.clone(),
+        k_hash_value: time_lock_puzzle_public_input.k_hash_value.clone(),
+    };
+
+    verify_valid_time_lock_puzzle_zkp(&param, &verifying_key, &key_validation_public_input, &proof)
+}
 
 #[cfg(test)]
 mod tests {
