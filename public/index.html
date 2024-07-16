@@ -1,0 +1,73 @@
+<!DOCTYPE html>
+<html lang="en-US">
+  <head>
+    <meta charset="utf-8" />
+    <title>PVDE in wasm</title>
+  </head>
+
+  <body>
+    <script type="module">
+      import init, {
+        generate_k,
+        prove_time_lock_puzzle,
+        get_time_lock_puzzle_public_input,
+        generate_params_for_making_time_lock_puzzle,
+      } from "./pkg/pvde.js";
+
+      await init();
+
+      // n, g, y_two
+      // let timeLockPuzzleParam = await (
+      //   await fetch("http://localhost:8000/data/time_lock_puzzle_param.json")
+      // ).json();
+      const timeLockPuzzleParam =
+        await generate_params_for_making_time_lock_puzzle(2);
+
+      console.log("timeLockPuzzleParam: ", timeLockPuzzleParam);
+
+      // let response = await fetch('http://localhost:8000/data/key_validation_zkp_param.data')
+      // let bytes = await response.arrayBuffer()
+      // const paramBytes = new Uint8Array(bytes)
+
+      // const k = generate_k(timeLockPuzzleParam.n);
+
+      // const timeLockPuzzlePublicInput = get_time_lock_puzzle_public_input(k, timeLockPuzzleParam.g, timeLockPuzzleParam.n, timeLockPuzzleParam.y_two);
+      // const timeLockPuzzleSecretInput = { k: k };
+
+      // // Proving Key..
+      // response = await fetch('http://localhost:8000/data/key_validation_proving_key.data')
+      // bytes = response.arrayBuffer()
+      // let provingKeyBytes = new Uint8Array(bytes);
+
+      // console.log("paramBytes", paramBytes)
+      // console.log("provingKeyBytes", provingKeyBytes)
+      // console.log("timeLockPuzzlePublicInput", timeLockPuzzlePublicInput)
+      // console.log("timeLockPuzzleSecretInput", timeLockPuzzleSecretInput)
+      // console.log("timeLockPuzzleParam", timeLockPuzzleParam)
+
+      // const start = Date.now();
+      // let proof = prove_time_lock_puzzle(paramBytes, provingKeyBytes, timeLockPuzzlePublicInput, timeLockPuzzleSecretInput, timeLockPuzzleParam);
+      // const end = Date.now();
+      // console.log(`Execution time: ${end - start} ms`);
+      // console.log(proof);
+
+      // fetch('http://localhost:8000/benches/data/vk_delay_hash_13')
+      //   .then((response2) => {
+      //     console.log(response2);
+      //     response2.arrayBuffer().then(
+      //       (bytes2) => {
+      //         console.log(bytes2);
+      //         let verifying_key_bytes = new Uint8Array(bytes2);
+      //         console.log(verifying_key_bytes);
+      //         let accept = verify_delay_hash(proof, K_squared, K_hashed, params_bytes, verifying_key_bytes);
+      //         console.log("accept: " + accept);
+      //       }
+      //     )
+      //   })
+
+      //       }
+      //     )
+      //   })
+    </script>
+  </body>
+</html>

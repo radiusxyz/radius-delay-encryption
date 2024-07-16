@@ -1,0 +1,15 @@
+[package]
+name = "big-integer"
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+
+[lib]
+doctest = false
+
+[dependencies]
+ff = { workspace = true }
+num-bigint = { workspace = true }
+halo2wrong = { workspace = true }
+maingate = { workspace = true }
+rand = { workspace = true }
