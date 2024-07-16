@@ -266,6 +266,15 @@ pub fn solve_time_lock_puzzle(o: JsValue, t: JsValue, n: JsValue) -> JsValue {
     let k = o.modpow(&two_t, &n);
     serde_wasm_bindgen::to_value(&k).unwrap()
 }
+
+pub fn get_decryption_key(o: JsValue, t: JsValue, n: JsValue) -> JsValue {
+    let k = solve_time_lock_puzzle(o, t, n);
+
+    // Symmetric key from o
+    let encryption_key = calculate_hash(k);
+
+    encryption_key
+}
 // ====================================================== //
 
 //================= Encryption =================//
