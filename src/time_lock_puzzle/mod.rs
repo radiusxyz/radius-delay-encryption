@@ -16,11 +16,11 @@ use rand::{thread_rng, Rng};
 use serde::{Deserialize, Serialize};
 
 use crate::time_lock_puzzle::key_validation_zkp::{
-    prove as prove_valid_time_lock_puzzle_zkp, verify as verify_valid_time_lock_puzzle_zkp,
-    KeyValidationParam, KeyValidationPublicInput, KeyValidationSecretInput,
+    prove as prove_key_validity, verify as verify_key_validity_zkp, KeyValidationParam,
+    KeyValidationPublicInput, KeyValidationSecretInput,
 };
 use crate::time_lock_puzzle::sigma_protocol::{
-    verify as verify_sigma_protocol, SigmaProtocolParam, SigmaProtocolPublicInput,
+    get_c, verify as verify_sigma_protocol, SigmaProtocolParam, SigmaProtocolPublicInput,
 };
 
 const BITS_LEN: usize = 2048;
@@ -36,10 +36,8 @@ pub const N: &str = "25195908475657893494027183240048398571429282126204032027777
 
 #[derive(Debug, Serialize, Deserialize, Clone)]
 pub struct TimeLockPuzzleParam {
-    // pub t: u32,
     pub g: BigUint,
     pub n: BigUint,
-    // pub y: BigUint,
     pub y_two: BigUint,
 }
 
@@ -58,7 +56,7 @@ pub struct TimeLockPuzzleSecretInput {
     pub k: BigUint,
 }
 
-pub fn setup(t: u32) -> TimeLockPuzzleParam {
+pub fn generate_time_lock_puzzle_param(t: u32) -> TimeLockPuzzleParam {
     let g = BigUint::from_str(G).unwrap();
     let n = BigUint::from_str(N).unwrap();
 
@@ -93,6 +91,36 @@ pub fn import_time_lock_puzzle_param(file_path: &str) -> TimeLockPuzzleParam {
     time_lock_puzzle_param
 }
 
+pub fn generate_time_lock_puzzle_public_input(
+    k: BigUint,
+    g: BigUint,
+    n: BigUint,
+    y_two: BigUint,
+) -> TimeLockPuzzlePublicInput {
+    let r = thread_rng().sample::<BigUint, _>(RandomBits::new(128));
+    let s = thread_rng().sample::<BigUint, _>(RandomBits::new(128));
+
+    let r1 = g.modpow(&r, &n);
+    let r2 = y_two.modpow(&r, &n);
+    let c = get_c(r1.clone(), r2.clone());
+
+    let z = &r + &s * &c;
+    let o = g.modpow(&s, &n);
+    let k_two = y_two.modpow(&s, &n);
+
+    let k_hash_value = hash(k.clone());
+
+    let time_lock_puzzle_public_input = TimeLockPuzzlePublicInput {
+        r1,
+        r2,
+        z,
+        o,
+        k_two,
+        k_hash_value,
+    };
+    time_lock_puzzle_public_input
+}
+
 pub fn solve_time_lock_puzzle(o: BigUint, t: u32, n: BigUint) -> BigUint {
     let two: BigUint = BigUint::from(2usize);
     let two_t: BigUint = two.pow(t);
@@ -106,12 +134,12 @@ pub fn get_decryption_key(o: BigUint, t: u32, n: BigUint) -> Result<HashValue, S
 
     // Symmetric key from o
     // Current version (Halo2) uses poseidon hash of k
-    let encryption_key = hash(k);
+    let encryption_key: HashValue = hash(k);
 
     Ok(encryption_key)
 }
 
-pub fn prove_time_lock_puzzle(
+pub fn prove_time_lock_puzzle_validity(
     param: &ParamsKZG<Bn256>,
     proving_key: &ProvingKey<G1Affine>,
     time_lock_puzzle_public_input: TimeLockPuzzlePublicInput,
@@ -129,7 +157,7 @@ pub fn prove_time_lock_puzzle(
         k: time_lock_puzzle_secret_input.k.clone(),
     };
 
-    let proof = prove_valid_time_lock_puzzle_zkp(
+    let proof = prove_key_validity(
         &param,
         &proving_key,
         &key_validation_param,
@@ -140,7 +168,7 @@ pub fn prove_time_lock_puzzle(
     proof
 }
 
-pub fn verify_time_lock_puzzle(
+pub fn verify_time_lock_puzzle_zkp(
     param: &ParamsKZG<Bn256>,
     verifying_key: &VerifyingKey<G1Affine>,
     time_lock_puzzle_public_input: &TimeLockPuzzlePublicInput,
@@ -171,7 +199,7 @@ pub fn verify_time_lock_puzzle(
         k_hash_value: time_lock_puzzle_public_input.k_hash_value.clone(),
     };
 
-    verify_valid_time_lock_puzzle_zkp(&param, &verifying_key, &key_validation_public_input, &proof)
+    verify_key_validity_zkp(&param, &verifying_key, &key_validation_public_input, &proof)
 }
 
 #[cfg(test)]

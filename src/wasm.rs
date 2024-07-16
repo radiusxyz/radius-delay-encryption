@@ -23,16 +23,10 @@ use crate::encryption::poseidon_encryption_zkp::{
     PoseidonEncryptionSecretInput as EncryptionSecretInput,
 };
 use crate::time_lock_puzzle::key_validation_circuit::KeyValidationCircuit;
-use crate::time_lock_puzzle::key_validation_zkp::{
-    prove as prove_valid_time_lock_puzzle_zkp, verify as verify_valid_time_lock_puzzle_zkp,
-    KeyValidationParam, KeyValidationPublicInput, KeyValidationSecretInput,
-};
-use crate::time_lock_puzzle::sigma_protocol::{
-    get_c, verify as verify_sigma_protocol, SigmaProtocolParam, SigmaProtocolPublicInput,
-};
 use crate::time_lock_puzzle::{
-    setup as setup_time_lock_puzzle, TimeLockPuzzleParam, TimeLockPuzzlePublicInput,
-    TimeLockPuzzleSecretInput,
+    generate_time_lock_puzzle_param, generate_time_lock_puzzle_public_input, get_decryption_key,
+    prove_time_lock_puzzle_validity, solve_time_lock_puzzle, verify_time_lock_puzzle_zkp,
+    TimeLockPuzzleParam, TimeLockPuzzlePublicInput, TimeLockPuzzleSecretInput,
 };
 
 const BITS_LEN: usize = 2048;
@@ -102,62 +96,37 @@ pub fn calculate_hash(k: JsValue) -> JsValue {
     serde_wasm_bindgen::to_value(&hash_value).unwrap()
 }
 
+// ================== Time-Lock Puzzle ================ //
+
 #[wasm_bindgen]
-pub fn generate_params_for_making_time_lock_puzzle(t: JsValue) -> JsValue {
+pub fn get_puzzle_param(t: JsValue) -> JsValue {
     let t = from_value::<u32>(t).unwrap();
 
-    let time_lock_puzzle_params = setup_time_lock_puzzle(t);
+    let time_lock_puzzle_params = generate_time_lock_puzzle_param(t);
 
     serde_wasm_bindgen::to_value(&time_lock_puzzle_params).unwrap()
 }
 
 #[wasm_bindgen]
-pub fn get_time_lock_puzzle_public_input(
-    k: JsValue,
-    g: JsValue,
-    n: JsValue,
-    y_two: JsValue,
-) -> JsValue {
+pub fn get_puzzle_public_input(k: JsValue, g: JsValue, n: JsValue, y_two: JsValue) -> JsValue {
     let k = from_value::<BigUint>(k).unwrap();
     let g = from_value::<BigUint>(g).unwrap();
     let n = from_value::<BigUint>(n).unwrap();
     let y_two = from_value::<BigUint>(y_two).unwrap();
 
-    let r = thread_rng().sample::<BigUint, _>(RandomBits::new(128));
-    let s = thread_rng().sample::<BigUint, _>(RandomBits::new(128));
-
-    let r1 = g.modpow(&r, &n);
-    let r2 = y_two.modpow(&r, &n);
-    let c = get_c(r1.clone(), r2.clone());
-
-    let z = &r + &s * &c;
-    let o = g.modpow(&s, &n);
-    let k_two = y_two.modpow(&s, &n);
-
-    let k_hash_value = hash(k.clone());
-
-    let time_lock_puzzle_public_input = TimeLockPuzzlePublicInput {
-        r1,
-        r2,
-        z,
-        o,
-        k_two,
-        k_hash_value,
-    };
+    let time_lock_puzzle_public_input = generate_time_lock_puzzle_public_input(k, g, n, y_two);
 
     serde_wasm_bindgen::to_value(&time_lock_puzzle_public_input).unwrap()
 }
 
 #[wasm_bindgen]
-pub fn prove_time_lock_puzzle(
+pub fn get_puzzle_proof(
     param: JsValue,
     proving_key: JsValue,
     time_lock_puzzle_public_input: JsValue,
     time_lock_puzzle_secret_input: JsValue,
     time_lock_puzzle_param: JsValue,
 ) -> JsValue {
-    log("stompesi - 1");
-    // Convert JsValue to Rust struct
     let time_lock_puzzle_public_input: TimeLockPuzzlePublicInput =
         serde_wasm_bindgen::from_value(time_lock_puzzle_public_input).unwrap();
     let time_lock_puzzle_secret_input: TimeLockPuzzleSecretInput =
@@ -165,75 +134,40 @@ pub fn prove_time_lock_puzzle(
     let time_lock_puzzle_param: TimeLockPuzzleParam =
         serde_wasm_bindgen::from_value(time_lock_puzzle_param).unwrap();
 
-    log("stompesi - 2");
     let param_vec = Uint8Array::new(&param).to_vec();
     let param = ParamsKZG::<Bn256>::read(&mut BufReader::new(&param_vec[..])).unwrap();
 
-    log("stompesi - 3");
     let proving_key_vec = Uint8Array::new(&proving_key).to_vec();
 
-    log("stompesi - 4");
     let proving_key = ProvingKey::<G1Affine>::read::<BufReader<_>, KeyValidationCircuit<Fr, 5, 4>>(
         &mut BufReader::new(&proving_key_vec[..]),
         SerdeFormat::RawBytes,
     )
     .expect("Failed to read proving_key");
 
-    log("stompesi - 5");
-    let key_validation_param = KeyValidationParam {
-        n: time_lock_puzzle_param.n.clone(),
-    };
-    let key_validation_public_input = KeyValidationPublicInput {
-        k_two: time_lock_puzzle_public_input.k_two.clone(),
-        k_hash_value: time_lock_puzzle_public_input.k_hash_value.clone(),
-    };
-    let key_validation_secret_input = KeyValidationSecretInput {
-        k: time_lock_puzzle_secret_input.k.clone(),
-    };
-
-    let proof = prove_valid_time_lock_puzzle_zkp(
+    let proof = prove_time_lock_puzzle_validity(
         &param,
         &proving_key,
-        &key_validation_param,
-        &key_validation_public_input,
-        &key_validation_secret_input,
+        time_lock_puzzle_public_input,
+        time_lock_puzzle_secret_input,
+        time_lock_puzzle_param,
     );
 
     serde_wasm_bindgen::to_value(&proof).unwrap()
 }
 
 #[wasm_bindgen]
-pub fn verify_time_lock_puzzle(
+pub fn verify_puzzle_proof(
     param: JsValue,
     verifying_key: JsValue,
     time_lock_puzzle_public_input: JsValue,
     time_lock_puzzle_param: JsValue,
     proof: JsValue,
 ) -> bool {
-    // Convert JsValue to Rust struct
     let time_lock_puzzle_public_input: TimeLockPuzzlePublicInput =
         serde_wasm_bindgen::from_value(time_lock_puzzle_public_input).unwrap();
     let time_lock_puzzle_param: TimeLockPuzzleParam =
         serde_wasm_bindgen::from_value(time_lock_puzzle_param).unwrap();
-
-    let sigma_protocol_public_input = SigmaProtocolPublicInput {
-        r1: time_lock_puzzle_public_input.r1.clone(),
-        r2: time_lock_puzzle_public_input.r2.clone(),
-        z: time_lock_puzzle_public_input.z.clone(),
-        o: time_lock_puzzle_public_input.o.clone(),
-        k_two: time_lock_puzzle_public_input.k_two.clone(),
-    };
-    let sigma_protocol_param = SigmaProtocolParam {
-        n: time_lock_puzzle_param.n.clone(),
-        g: time_lock_puzzle_param.g.clone(),
-        y_two: time_lock_puzzle_param.y_two.clone(),
-    };
-
-    let is_valid = verify_sigma_protocol(&sigma_protocol_public_input, &sigma_protocol_param);
-
-    if !is_valid {
-        return false;
-    }
 
     let proof = Uint8Array::new(&proof).to_vec();
 
@@ -248,36 +182,56 @@ pub fn verify_time_lock_puzzle(
         )
         .expect("Failed to read verifying_key");
 
-    let key_validation_public_input = KeyValidationPublicInput {
-        k_two: time_lock_puzzle_public_input.k_two.clone(),
-        k_hash_value: time_lock_puzzle_public_input.k_hash_value.clone(),
-    };
-
-    verify_valid_time_lock_puzzle_zkp(&param, &verifying_key, &key_validation_public_input, &proof)
+    verify_time_lock_puzzle_zkp(
+        &param,
+        &verifying_key,
+        &time_lock_puzzle_public_input,
+        &time_lock_puzzle_param,
+        &proof,
+    )
 }
 
 #[wasm_bindgen]
-pub fn solve_time_lock_puzzle(o: JsValue, t: JsValue, n: JsValue) -> JsValue {
-    let two: BigUint = BigUint::from(2usize);
-    let two_t: BigUint = two.pow(from_value::<u32>(t).unwrap());
+pub fn solve_puzzle(o: JsValue, t: JsValue, n: JsValue) -> JsValue {
     let o = from_value::<BigUint>(o).unwrap();
+    let t = from_value::<u32>(t).unwrap();
     let n = from_value::<BigUint>(n).unwrap();
-    // k = o ^ (2^t)
-    let k = o.modpow(&two_t, &n);
-    serde_wasm_bindgen::to_value(&k).unwrap()
+    let solution = solve_time_lock_puzzle(o, t, n);
+    serde_wasm_bindgen::to_value(&solution).unwrap()
 }
 
-pub fn get_decryption_key(o: JsValue, t: JsValue, n: JsValue) -> JsValue {
-    let k = solve_time_lock_puzzle(o, t, n);
-
-    // Symmetric key from o
-    let encryption_key = calculate_hash(k);
-
+#[wasm_bindgen]
+pub fn get_key(o: JsValue, t: JsValue, n: JsValue) -> JsValue {
+    let o = from_value::<BigUint>(o).unwrap();
+    let t = from_value::<u32>(t).unwrap();
+    let n = from_value::<BigUint>(n).unwrap();
+    let encryption_key = serde_wasm_bindgen::to_value(&get_decryption_key(o, t, n)).unwrap();
     encryption_key
 }
 // ====================================================== //
 
 //================= Encryption =================//
+
+#[wasm_bindgen]
+pub fn setup(
+    k: u32,
+) -> (
+    ParamsKZG<Bn256>,
+    VerifyingKey<G1Affine>,
+    ProvingKey<G1Affine>,
+) {
+    let param = ParamsKZG::<Bn256>::setup(k, OsRng);
+
+    let circuit = PoseidonEncryptionCircuit::<Fr, T, RATE>::create_empty_circuit();
+
+    let verifying_key = keygen_vk(&param, &circuit.clone()).expect("keygen_vk failed");
+
+    let proving_key =
+        keygen_pk(&param, verifying_key.clone(), &circuit.clone()).expect("keygen_pk failed");
+
+    (param, verifying_key, proving_key)
+}
+
 #[wasm_bindgen]
 pub fn prove_encryption(
     param: JsValue,
@@ -318,7 +272,6 @@ pub fn verify_encryption(
     encryption_public_input: JsValue,
     proof: JsValue,
 ) -> bool {
-    // Convert JsValue to Rust struct
     let encryption_public_input: EncryptionPublicInput =
         serde_wasm_bindgen::from_value(encryption_public_input).unwrap();
 
