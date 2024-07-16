@@ -255,6 +255,17 @@ pub fn verify_time_lock_puzzle(
 
     verify_valid_time_lock_puzzle_zkp(&param, &verifying_key, &key_validation_public_input, &proof)
 }
+
+#[wasm_bindgen]
+pub fn solve_time_lock_puzzle(o: JsValue, t: JsValue, n: JsValue) -> JsValue {
+    let two: BigUint = BigUint::from(2usize);
+    let two_t: BigUint = two.pow(from_value::<u32>(t).unwrap());
+    let o = from_value::<BigUint>(o).unwrap();
+    let n = from_value::<BigUint>(n).unwrap();
+    // k = o ^ (2^t)
+    let k = o.modpow(&two_t, &n);
+    serde_wasm_bindgen::to_value(&k).unwrap()
+}
 // ====================================================== //
 
 //================= Encryption =================//
