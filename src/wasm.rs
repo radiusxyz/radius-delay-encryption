@@ -30,7 +30,10 @@ use crate::time_lock_puzzle::key_validation_zkp::{
 use crate::time_lock_puzzle::sigma_protocol::{
     get_c, verify as verify_sigma_protocol, SigmaProtocolParam, SigmaProtocolPublicInput,
 };
-use crate::time_lock_puzzle::{setup as setup_time_lock_puzzle, TimeLockPuzzleParam};
+use crate::time_lock_puzzle::{
+    setup as setup_time_lock_puzzle, TimeLockPuzzleParam, TimeLockPuzzlePublicInput,
+    TimeLockPuzzleSecretInput,
+};
 
 const BITS_LEN: usize = 2048;
 
@@ -143,22 +146,6 @@ pub fn get_time_lock_puzzle_public_input(
     };
 
     serde_wasm_bindgen::to_value(&time_lock_puzzle_public_input).unwrap()
-}
-
-// ================== Time Lock Puzzle ================== //
-#[derive(Serialize, Deserialize)]
-pub struct TimeLockPuzzlePublicInput {
-    r1: BigUint,
-    r2: BigUint,
-    z: BigUint,
-    o: BigUint,
-    k_two: BigUint,
-    k_hash_value: HashValue,
-}
-
-#[derive(Serialize, Deserialize)]
-pub struct TimeLockPuzzleSecretInput {
-    k: BigUint,
 }
 
 #[wasm_bindgen]

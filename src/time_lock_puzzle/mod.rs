@@ -36,6 +36,21 @@ pub struct TimeLockPuzzleParam {
     pub y_two: BigUint,
 }
 
+#[derive(Debug, Serialize, Deserialize, Clone)]
+pub struct TimeLockPuzzlePublicInput {
+    pub r1: BigUint,
+    pub r2: BigUint,
+    pub z: BigUint,
+    pub o: BigUint,
+    pub k_two: BigUint,
+    pub k_hash_value: HashValue,
+}
+
+#[derive(Debug, Serialize, Deserialize, Clone)]
+pub struct TimeLockPuzzleSecretInput {
+    pub k: BigUint,
+}
+
 pub fn setup(t: u32) -> TimeLockPuzzleParam {
     let g = BigUint::from_str(G).unwrap();
     let n = BigUint::from_str(N).unwrap();
@@ -81,7 +96,7 @@ pub fn solve_time_lock_puzzle(o: BigUint, t: u32, n: BigUint) -> BigUint {
     o.modpow(&two_t, &n)
 }
 
-pub fn get_decryption_key(o: BigUint, t: u32, n: BigUint) -> Result<PoseidonHashValue, String> {
+pub fn get_decryption_key(o: BigUint, t: u32, n: BigUint) -> Result<HashValue, String> {
     let k = solve_time_lock_puzzle(o, t, n);
 
     // Symmetric key from o
