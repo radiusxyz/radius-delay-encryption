@@ -15,13 +15,12 @@ use serde_wasm_bindgen::{self, from_value};
 use wasm_bindgen::prelude::*;
 use wasm_bindgen::JsValue;
 
-use crate::encryption::poseidon_encryption::{
-    decrypt as poseidon_decrypt, encrypt as poseidon_encrypt,
-};
-use crate::encryption::poseidon_encryption_circuit::PoseidonEncryptionCircuit;
+use crate::encryption::poseidon_encryption::{decrypt as decryptor, encrypt as encryptor};
+use crate::encryption::poseidon_encryption_circuit::PoseidonEncryptionCircuit as EncryptionCircuit;
 use crate::encryption::poseidon_encryption_zkp::{
-    prove as prove_poseidon_encryption_zkp, verify as verify_encryption_zkp,
-    PoseidonEncryptionPublicInput, PoseidonEncryptionSecretInput,
+    prove as prove_encryption_zkp, verify as verify_encryption_zkp,
+    PoseidonEncryptionPublicInput as EncryptionPublicInput,
+    PoseidonEncryptionSecretInput as EncryptionSecretInput,
 };
 use crate::time_lock_puzzle::key_validation_circuit::KeyValidationCircuit;
 use crate::time_lock_puzzle::key_validation_zkp::{
@@ -154,7 +153,7 @@ pub struct TimeLockPuzzlePublicInput {
     z: BigUint,
     o: BigUint,
     k_two: BigUint,
-    k_hash_value: PoseidonHashValue,
+    k_hash_value: HashValue,
 }
 
 #[derive(Serialize, Deserialize)]
@@ -273,34 +272,33 @@ pub fn verify_time_lock_puzzle(
 
 //================= Encryption =================//
 #[wasm_bindgen]
-pub fn prove_poseidon_encryption(
+pub fn prove_encryption(
     param: JsValue,
     proving_key: JsValue,
-    poseidon_encryption_public_input: JsValue,
-    poseidon_encryption_secret_input: JsValue,
+    encryption_public_input: JsValue,
+    encryption_secret_input: JsValue,
 ) -> JsValue {
     // Convert JsValue to Rust struct
-    let poseidon_encryption_public_input: PoseidonEncryptionPublicInput =
-        serde_wasm_bindgen::from_value(poseidon_encryption_public_input).unwrap();
-    let poseidon_encryption_secret_input: PoseidonEncryptionSecretInput =
-        serde_wasm_bindgen::from_value(poseidon_encryption_secret_input).unwrap();
+    let encryption_public_input: EncryptionPublicInput =
+        serde_wasm_bindgen::from_value(encryption_public_input).unwrap();
+    let encryption_secret_input: EncryptionSecretInput =
+        serde_wasm_bindgen::from_value(encryption_secret_input).unwrap();
 
     let param_vec = Uint8Array::new(&param).to_vec();
     let param = ParamsKZG::<Bn256>::read(&mut BufReader::new(&param_vec[..])).unwrap();
 
     let proving_key_vec = Uint8Array::new(&proving_key).to_vec();
-    let proving_key =
-        ProvingKey::<G1Affine>::read::<BufReader<_>, PoseidonEncryptionCircuit<Fr, 5, 4>>(
-            &mut BufReader::new(&proving_key_vec[..]),
-            SerdeFormat::RawBytes,
-        )
-        .expect("Failed to read proving_key");
+    let proving_key = ProvingKey::<G1Affine>::read::<BufReader<_>, EncryptionCircuit<Fr, 5, 4>>(
+        &mut BufReader::new(&proving_key_vec[..]),
+        SerdeFormat::RawBytes,
+    )
+    .expect("Failed to read proving_key");
 
-    let proof = prove_poseidon_encryption_zkp(
+    let proof = prove_encryption_zkp(
         &param,
         &proving_key,
-        &poseidon_encryption_public_input,
-        &poseidon_encryption_secret_input,
+        &encryption_public_input,
+        &encryption_secret_input,
     );
 
     serde_wasm_bindgen::to_value(&proof).unwrap()
@@ -310,12 +308,12 @@ pub fn prove_poseidon_encryption(
 pub fn verify_encryption(
     param: JsValue,
     verifying_key: JsValue,
-    poseidon_encryption_public_input: JsValue,
+    encryption_public_input: JsValue,
     proof: JsValue,
 ) -> bool {
     // Convert JsValue to Rust struct
-    let poseidon_encryption_public_input: PoseidonEncryptionPublicInput =
-        serde_wasm_bindgen::from_value(poseidon_encryption_public_input).unwrap();
+    let encryption_public_input: EncryptionPublicInput =
+        serde_wasm_bindgen::from_value(encryption_public_input).unwrap();
 
     let proof = Uint8Array::new(&proof).to_vec();
 
@@ -324,36 +322,31 @@ pub fn verify_encryption(
 
     let verifying_key_vec = Uint8Array::new(&verifying_key).to_vec();
     let verifying_key =
-        VerifyingKey::<G1Affine>::read::<BufReader<_>, PoseidonEncryptionCircuit<Fr, 5, 4>>(
+        VerifyingKey::<G1Affine>::read::<BufReader<_>, EncryptionCircuit<Fr, 5, 4>>(
             &mut BufReader::new(&verifying_key_vec[..]),
             SerdeFormat::RawBytes,
         )
         .expect("Failed to read verifying_key");
 
-    verify_encryption_zkp(
-        &param,
-        &verifying_key,
-        &poseidon_encryption_public_input,
-        &proof,
-    )
+    verify_encryption_zkp(&param, &verifying_key, &encryption_public_input, &proof)
 }
 //=============================================//
 
 //================ Encrypt & Decrypt ==========//
 #[wasm_bindgen]
 pub fn encrypt(data: &str, hash_value: JsValue) -> JsValue {
-    let hash_value: PoseidonHashValue = serde_wasm_bindgen::from_value(hash_value).unwrap();
+    let hash_value: HashValue = serde_wasm_bindgen::from_value(hash_value).unwrap();
 
-    let encrypted_data = poseidon_encrypt(data, &hash_value);
+    let encrypted_data = encryptor(data, &hash_value);
 
     serde_wasm_bindgen::to_value(&encrypted_data).unwrap()
 }
 
 #[wasm_bindgen]
 pub fn decrypt(encrypted_data: &str, hash_value: JsValue) -> JsValue {
-    let hash_value: PoseidonHashValue = serde_wasm_bindgen::from_value(hash_value).unwrap();
+    let hash_value: HashValue = serde_wasm_bindgen::from_value(hash_value).unwrap();
 
-    let raw_data = poseidon_decrypt(encrypted_data, &hash_value);
+    let raw_data = decryptor(encrypted_data, &hash_value);
 
     serde_wasm_bindgen::to_value(&raw_data).unwrap()
 }
@@ -362,8 +355,7 @@ pub fn decrypt(encrypted_data: &str, hash_value: JsValue) -> JsValue {
 // ================== Utils ================ //
 #[wasm_bindgen]
 pub fn check_hash(k: JsValue, check_hash_value: JsValue) -> bool {
-    let check_hash_value: PoseidonHashValue =
-        serde_wasm_bindgen::from_value(check_hash_value).unwrap();
+    let check_hash_value: HashValue = serde_wasm_bindgen::from_value(check_hash_value).unwrap();
 
     let k = from_value::<BigUint>(k).unwrap();
     let hash_value = hash(k);
