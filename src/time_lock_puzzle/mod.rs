@@ -211,7 +211,7 @@ mod tests {
         let data_dir = "./public/data/";
         let param_file_path = data_dir.to_owned() + "time_lock_puzzle_param.json";
 
-        let time_lock_puzzle_param = setup(2048);
+        let time_lock_puzzle_param = generate_time_lock_puzzle_param(2048);
 
         export_time_lock_puzzle_param(&param_file_path, time_lock_puzzle_param);
     }

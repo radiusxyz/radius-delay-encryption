@@ -18,9 +18,8 @@ use wasm_bindgen::JsValue;
 use crate::encryption::poseidon_encryption::{decrypt as decryptor, encrypt as encryptor};
 use crate::encryption::poseidon_encryption_circuit::PoseidonEncryptionCircuit as EncryptionCircuit;
 use crate::encryption::poseidon_encryption_zkp::{
-    prove as prove_encryption_zkp, verify as verify_encryption_zkp,
-    PoseidonEncryptionPublicInput as EncryptionPublicInput,
-    PoseidonEncryptionSecretInput as EncryptionSecretInput,
+    prove as prove_encryption_zkp, verify as verify_encryption_zkp, EncryptionPublicInput,
+    EncryptionSecretInput,
 };
 use crate::time_lock_puzzle::key_validation_circuit::KeyValidationCircuit;
 use crate::time_lock_puzzle::{
@@ -212,25 +211,42 @@ pub fn get_key(o: JsValue, t: JsValue, n: JsValue) -> JsValue {
 
 //================= Encryption =================//
 
-#[wasm_bindgen]
-pub fn setup(
-    k: u32,
-) -> (
-    ParamsKZG<Bn256>,
-    VerifyingKey<G1Affine>,
-    ProvingKey<G1Affine>,
-) {
-    let param = ParamsKZG::<Bn256>::setup(k, OsRng);
+// #[wasm_bindgen]
+// pub fn setup_encryption(k: JsValue) -> JsValue {
+//     let k = from_value::<u32>(k).unwrap();
 
-    let circuit = PoseidonEncryptionCircuit::<Fr, T, RATE>::create_empty_circuit();
+//     let (param, verifying_key, proving_key) = setup(k);
 
-    let verifying_key = keygen_vk(&param, &circuit.clone()).expect("keygen_vk failed");
+//     let param_bytes = serialize(&param).unwrap();
+//     let verifying_key_bytes = serialize(&verifying_key).unwrap();
+//     let proving_key_bytes = serialize(&proving_key).unwrap();
 
-    let proving_key =
-        keygen_pk(&param, verifying_key.clone(), &circuit.clone()).expect("keygen_pk failed");
+//     let output = SetupOutput {
+//         param: param_bytes,
+//         verifying_key: verifying_key_bytes,
+//         proving_key: proving_key_bytes,
+//     };
 
-    (param, verifying_key, proving_key)
-}
+//     // param = JsValue::from_serde(&param).unwrap();
+//     // verifying_key = JsValue::from_serde(&verifying_key).unwrap();
+//     // proving_key = JsValue::from_serde(&proving_key).unwrap();
+
+//     // // Serialize to raw bytes
+//     // let param_bytes = serde_wasm_bindgen::to_value(&param).unwrap();
+//     // let verifying_key_bytes = serde_wasm_bindgen::to_value(&verifying_key).unwrap();
+//     // let proving_key_bytes = serde_wasm_bindgen::to_value(&proving_key).unwrap();
+
+//     // // Convert raw bytes to Uint8Array
+//     // let param_vec = Uint8Array::new(&param_bytes).to_vec();
+//     // let proving_key_vec = Uint8Array::new(&proving_key_bytes).to_vec();
+//     // let verifying_key_vec = Uint8Array::new(&verifying_key_bytes).to_vec();
+
+//     // let final_tuple = (param, verifying_key, proving_key);
+//     // let zkpparams = serde_wasm_bindgen::to_value(&k).unwrap();
+//     // zkpparams
+
+//     serde_wasm_bindgen::to_value(&output).unwrap()
+// }
 
 #[wasm_bindgen]
 pub fn prove_encryption(
