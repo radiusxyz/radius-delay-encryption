@@ -14,6 +14,7 @@ use halo2_proofs::poly::kzg::commitment::ParamsKZG;
 use num_bigint::{BigUint, RandomBits};
 use rand::{thread_rng, Rng};
 use serde::{Deserialize, Serialize};
+use sigma_protocol::generate_sigma_protocol_public_input;
 
 use crate::time_lock_puzzle::key_validation_zkp::{
     prove as prove_key_validity, verify as verify_key_validity_zkp, KeyValidationParam,
@@ -108,7 +109,7 @@ pub fn generate_time_lock_puzzle_public_input(
     let o = g.modpow(&s, &n);
     let k_two = y_two.modpow(&s, &n);
 
-    let k_hash_value = hash(k.clone());
+    let k_hash_value: HashValue = hash(k.clone());
 
     let time_lock_puzzle_public_input = TimeLockPuzzlePublicInput {
         r1,
@@ -133,7 +134,7 @@ pub fn get_decryption_key(o: BigUint, t: u32, n: BigUint) -> Result<HashValue, S
     let k = solve_time_lock_puzzle(o, t, n);
 
     // Symmetric key from o
-    // Current version (Halo2) uses poseidon hash of k
+    // Current version (Halo2) uses hash of k
     let encryption_key: HashValue = hash(k);
 
     Ok(encryption_key)
@@ -202,6 +203,51 @@ pub fn verify_time_lock_puzzle_zkp(
     verify_key_validity_zkp(&param, &verifying_key, &key_validation_public_input, &proof)
 }
 
+pub fn generate_time_lock_puzzle(
+    time_lock_puzzle_param: TimeLockPuzzleParam,
+) -> (
+    SigmaProtocolPublicInput,
+    KeyValidationParam,
+    KeyValidationPublicInput,
+    KeyValidationSecretInput,
+) {
+    let g = time_lock_puzzle_param.g.clone();
+    let n = time_lock_puzzle_param.n.clone();
+    let y = time_lock_puzzle_param.y.clone();
+    let y_two = time_lock_puzzle_param.y_two.clone();
+
+    let r = thread_rng().sample::<BigUint, _>(RandomBits::new(128));
+    let s = thread_rng().sample::<BigUint, _>(RandomBits::new(128));
+
+    // Generate sigma protocol public input
+    let sigma_protocol_param = SigmaProtocolParam {
+        n: n.clone(),
+        g: g.clone(),
+        y_two: y_two.clone(),
+    };
+    let sigma_protocol_public_input =
+        generate_sigma_protocol_public_input(&sigma_protocol_param, &r, &s);
+
+    // k = y^s mod n
+    let k = y.modpow(&s, &n);
+    let k_two = y_two.modpow(&s, &n);
+    let k_hash_value: HashValue = hash(k.clone());
+
+    // Generate key validation param & public & secret input
+    let key_validation_param = KeyValidationParam { n: n.clone() };
+    let key_validation_public_input = KeyValidationPublicInput {
+        k_two: k_two.clone(),
+        k_hash_value: k_hash_value.clone(),
+    };
+    let key_validation_secret_input = KeyValidationSecretInput { k: k.clone() };
+
+    (
+        sigma_protocol_public_input,
+        key_validation_param,
+        key_validation_public_input,
+        key_validation_secret_input,
+    )
+}
 #[cfg(test)]
 mod tests {
     use super::*;

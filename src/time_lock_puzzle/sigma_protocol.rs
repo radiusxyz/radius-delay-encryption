@@ -9,6 +9,7 @@ use serde::{Deserialize, Serialize};
 
 use super::{G, LIMB_COUNT, LIMB_WIDTH, N, RATE, T};
 
+#[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct SigmaProtocolPublicInput {
     pub r1: BigUint,
     pub r2: BigUint,
@@ -17,6 +18,7 @@ pub struct SigmaProtocolPublicInput {
     pub k_two: BigUint,
 }
 
+#[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct SigmaProtocolParam {
     pub n: BigUint,
     pub g: BigUint,
@@ -159,7 +161,7 @@ mod tests {
         let r = thread_rng().sample::<BigUint, _>(RandomBits::new(128));
         let s = thread_rng().sample::<BigUint, _>(RandomBits::new(128));
 
-        let mut sigma_protocol_public_input =
+        let mut sigma_protocol_public_input: SigmaProtocolPublicInput =
             generate_sigma_protocol_public_input(&sigma_protocol_param, &r, &s);
 
         // It is invalid

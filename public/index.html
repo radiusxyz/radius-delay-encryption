@@ -9,21 +9,96 @@
     <script type="module">
       import init, {
         generate_k,
-        prove_time_lock_puzzle,
-        get_time_lock_puzzle_public_input,
-        generate_params_for_making_time_lock_puzzle,
+        get_puzzle_param,
+        get_puzzle_public_input,
+        get_puzzle_proof,
+        verify_puzzle_proof,
+        solve_puzzle,
       } from "./pkg/pvde.js";
 
       await init();
+      function uint8ArrayToHex(uint8Array) {
+        return Array.from(uint8Array, (byte) =>
+          byte.toString(16).padStart(2, "0")
+        ).join("");
+      }
 
+      async function readStream(res) {
+        const bytes = await res.arrayBuffer();
+        const uint8bytes = new Uint8Array(bytes);
+        // const string = uint8ArrayToHex(uint8bytes);
+        return uint8bytes;
+      }
       // n, g, y_two
       // let timeLockPuzzleParam = await (
       //   await fetch("http://localhost:8000/data/time_lock_puzzle_param.json")
       // ).json();
-      const timeLockPuzzleParam =
-        await generate_params_for_making_time_lock_puzzle(2);
 
-      console.log("timeLockPuzzleParam: ", timeLockPuzzleParam);
+      // Generate params for making time-lock puzzle
+      const puzzle_param = await get_puzzle_param(2048);
+
+      console.log("puzzle_parameters: ", puzzle_param);
+
+      // Generate k (secret input is {k:k}) from n in time-lock puzzle parameters
+      const k = generate_k(puzzle_param.n);
+      console.log("k: ", k);
+
+      // Destructure time-lock puzzle parameters
+      const { g, n, y_two } = puzzle_param;
+
+      // Generate public input for the time-lock puzzle
+      const puzzle_public_input = get_puzzle_public_input(k, g, n, y_two);
+
+      console.log("puzzle_public_input: ", puzzle_public_input);
+
+      // Generate zk-proof for the validity of time-lock puzzle
+      //// 1. Get zkp param
+      let param = await fetch("./data/key_validation_zkp_param.data", {
+        method: "GET",
+      }).then((res) => readStream(res));
+
+      //// 2. Get proving_key
+      let proving_key = await fetch("./data/key_validation_proving_key.data", {
+        method: "GET",
+      }).then((res) => readStream(res));
+
+      //// 3. Get verifying key
+      let verifying_key = await fetch(
+        "./data/key_validation_verifying_key.data",
+        {
+          method: "GET",
+        }
+      ).then((res) => readStream(res));
+
+      const proof = get_puzzle_proof(
+        param,
+        proving_key,
+        puzzle_public_input,
+        { k: k }, // time-lock puzzle secret input
+        puzzle_param
+      );
+
+      console.log("proof: ", proof);
+
+      console.log("verifying_key: ", verifying_key);
+
+      // Verify zk-proof
+      const verified = verify_puzzle_proof(
+        param,
+        verifying_key,
+        puzzle_public_input,
+        puzzle_param,
+        proof
+      );
+
+      console.log("proof verified: ", verified);
+
+      // console.log("proof: ", proof);
+      // param: &ParamsKZG<Bn256>,
+      // proving_key: &ProvingKey<G1Affine>,
+      // time_lock_puzzle_public_input: TimeLockPuzzlePublicInput,
+      // time_lock_puzzle_secret_input: TimeLockPuzzleSecretInput,
+      // time_lock_puzzle_param: TimeLockPuzzleParam,
 
       // let response = await fetch('http://localhost:8000/data/key_validation_zkp_param.data')
       // let bytes = await response.arrayBuffer()

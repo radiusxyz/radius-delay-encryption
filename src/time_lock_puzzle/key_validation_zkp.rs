@@ -238,7 +238,7 @@ mod tests {
 
         let s = thread_rng().sample::<BigUint, _>(RandomBits::new(128));
 
-        let k = y.modpow(&s, &n);
+        let k: BigUint = y.modpow(&s, &n);
         let k_two = y_two.modpow(&s, &n);
 
         let k_hash_value = hash::hash(k.clone());
