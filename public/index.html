@@ -14,9 +14,17 @@
         get_puzzle_proof,
         verify_puzzle_proof,
         solve_puzzle,
+        calculate_hash,
+        encrypt,
+        decrypt,
+        prove_encryption,
+        verify_encryption,
+        generate_pubsec_inputs,
+        get_key,
       } from "./pkg/pvde.js";
 
       await init();
+
       function uint8ArrayToHex(uint8Array) {
         return Array.from(uint8Array, (byte) =>
           byte.toString(16).padStart(2, "0")
@@ -29,10 +37,6 @@
         // const string = uint8ArrayToHex(uint8bytes);
         return uint8bytes;
       }
-      // n, g, y_two
-      // let timeLockPuzzleParam = await (
-      //   await fetch("http://localhost:8000/data/time_lock_puzzle_param.json")
-      // ).json();
 
       // Generate time-lock puzzle
       const puzzle = await get_puzzle(2048);
@@ -70,7 +74,7 @@
         }
       ).then((res) => readStream(res));
 
-      const proof = get_puzzle_proof(
+      const tlp_proof = get_puzzle_proof(
         param,
         proving_key,
         puzzle_public_input,
@@ -78,71 +82,84 @@
         puzzle_param
       );
 
-      console.log("proof: ", proof);
+      console.log("proof: ", tlp_proof);
 
       console.log("verifying_key: ", verifying_key);
 
       // Verify zk-proof
-      const verified = verify_puzzle_proof(
+      const tlp_verified = verify_puzzle_proof(
         param,
         verifying_key,
         puzzle_public_input,
         puzzle_param,
+        tlp_proof
+      );
+
+      console.log("proof verified: ", tlp_verified);
+      const decryption_key = get_key(
+        puzzle_param.n,
+        2048,
+        puzzle_public_input.o
+      );
+      console.log("decryption key: ", decryption_key);
+
+      // Encryption
+      const hash = await calculate_hash(puzzle_param.n);
+      console.log("hash: ", hash);
+      const encrypted = encrypt("Hello World", hash);
+      console.log("encrypted: ", encrypted);
+
+      const decrypted = decrypt(encrypted, hash);
+      console.log("decrypted: ", decrypted);
+
+      // Generate zk-proof for the validity of time-lock puzzle
+      //// 1. Get zkp param
+      let encryption_zkp_param = await fetch(
+        "./data/encryption_zkp_param.data",
+        {
+          method: "GET",
+        }
+      ).then((res) => readStream(res));
+
+      //// 2. Get proving_key
+      let encryption_proving_key = await fetch(
+        "./data/encryption_proving_key.data",
+        {
+          method: "GET",
+        }
+      ).then((res) => readStream(res));
+
+      //// 3. Get verifying key
+      let encryption_verifying_key = await fetch(
+        "./data/encryption_verifying_key.data",
+        {
+          method: "GET",
+        }
+      ).then((res) => readStream(res));
+
+      const [encryption_secret_input, encryption_public_input] =
+        generate_pubsec_inputs();
+
+      console.log("encryption_secret_input: ", encryption_secret_input);
+      console.log("encryption_public_input: ", encryption_public_input);
+
+      const proof = prove_encryption(
+        encryption_zkp_param,
+        encryption_proving_key,
+        encryption_public_input,
+        encryption_secret_input
+      );
+
+      console.log("encryption proof: ", proof);
+
+      const verified = verify_encryption(
+        encryption_zkp_param,
+        encryption_verifying_key,
+        encryption_public_input,
         proof
       );
 
-      console.log("proof verified: ", verified);
-
-      // console.log("proof: ", proof);
-      // param: &ParamsKZG<Bn256>,
-      // proving_key: &ProvingKey<G1Affine>,
-      // time_lock_puzzle_public_input: TimeLockPuzzlePublicInput,
-      // time_lock_puzzle_secret_input: TimeLockPuzzleSecretInput,
-      // time_lock_puzzle_param: TimeLockPuzzleParam,
-
-      // let response = await fetch('http://localhost:8000/data/key_validation_zkp_param.data')
-      // let bytes = await response.arrayBuffer()
-      // const paramBytes = new Uint8Array(bytes)
-
-      // const k = generate_k(timeLockPuzzleParam.n);
-
-      // const timeLockPuzzlePublicInput = get_time_lock_puzzle_public_input(k, timeLockPuzzleParam.g, timeLockPuzzleParam.n, timeLockPuzzleParam.y_two);
-      // const timeLockPuzzleSecretInput = { k: k };
-
-      // // Proving Key..
-      // response = await fetch('http://localhost:8000/data/key_validation_proving_key.data')
-      // bytes = response.arrayBuffer()
-      // let provingKeyBytes = new Uint8Array(bytes);
-
-      // console.log("paramBytes", paramBytes)
-      // console.log("provingKeyBytes", provingKeyBytes)
-      // console.log("timeLockPuzzlePublicInput", timeLockPuzzlePublicInput)
-      // console.log("timeLockPuzzleSecretInput", timeLockPuzzleSecretInput)
-      // console.log("timeLockPuzzleParam", timeLockPuzzleParam)
-
-      // const start = Date.now();
-      // let proof = prove_time_lock_puzzle(paramBytes, provingKeyBytes, timeLockPuzzlePublicInput, timeLockPuzzleSecretInput, timeLockPuzzleParam);
-      // const end = Date.now();
-      // console.log(`Execution time: ${end - start} ms`);
-      // console.log(proof);
-
-      // fetch('http://localhost:8000/benches/data/vk_delay_hash_13')
-      //   .then((response2) => {
-      //     console.log(response2);
-      //     response2.arrayBuffer().then(
-      //       (bytes2) => {
-      //         console.log(bytes2);
-      //         let verifying_key_bytes = new Uint8Array(bytes2);
-      //         console.log(verifying_key_bytes);
-      //         let accept = verify_delay_hash(proof, K_squared, K_hashed, params_bytes, verifying_key_bytes);
-      //         console.log("accept: " + accept);
-      //       }
-      //     )
-      //   })
-
-      //       }
-      //     )
-      //   })
+      console.log("verified: ", verified);
     </script>
   </body>
 </html>

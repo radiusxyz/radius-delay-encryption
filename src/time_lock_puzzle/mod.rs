@@ -201,14 +201,13 @@ pub fn solve_time_lock_puzzle(o: BigUint, t: u32, n: BigUint) -> BigUint {
     o.modpow(&two_t, &n)
 }
 
-pub fn get_decryption_key(o: BigUint, t: u32, n: BigUint) -> Result<HashValue, String> {
+pub fn get_decryption_key(o: BigUint, t: u32, n: BigUint) -> HashValue {
     let k = solve_time_lock_puzzle(o, t, n);
 
     // Symmetric key from o
     // Current version (Halo2) uses hash of k
     let encryption_key: HashValue = hash(k);
-
-    Ok(encryption_key)
+    encryption_key
 }
 
 pub fn prove_time_lock_puzzle_validity(

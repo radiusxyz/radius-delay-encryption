@@ -18,8 +18,8 @@ use wasm_bindgen::JsValue;
 use crate::encryption::poseidon_encryption::{decrypt as decryptor, encrypt as encryptor};
 use crate::encryption::poseidon_encryption_circuit::PoseidonEncryptionCircuit as EncryptionCircuit;
 use crate::encryption::poseidon_encryption_zkp::{
-    prove as prove_encryption_zkp, verify as verify_encryption_zkp, EncryptionPublicInput,
-    EncryptionSecretInput,
+    generate_inputs, prove as prove_encryption_zkp, verify as verify_encryption_zkp,
+    EncryptionPublicInput, EncryptionSecretInput,
 };
 use crate::time_lock_puzzle::key_validation_circuit::KeyValidationCircuit;
 use crate::time_lock_puzzle::{
@@ -73,6 +73,12 @@ pub fn generate_k(n: JsValue) -> JsValue {
     log(k.to_string().as_str());
 
     serde_wasm_bindgen::to_value(&k).unwrap()
+}
+
+#[wasm_bindgen]
+pub fn generate_pubsec_inputs() -> JsValue {
+    let inputs = generate_inputs();
+    serde_wasm_bindgen::to_value(&inputs).unwrap()
 }
 
 #[wasm_bindgen]
@@ -204,7 +210,13 @@ pub fn get_key(o: JsValue, t: JsValue, n: JsValue) -> JsValue {
     let o = from_value::<BigUint>(o).unwrap();
     let t = from_value::<u32>(t).unwrap();
     let n = from_value::<BigUint>(n).unwrap();
-    let encryption_key = serde_wasm_bindgen::to_value(&get_decryption_key(o, t, n)).unwrap();
+
+    let decryption_key = get_decryption_key(o, t, n);
+
+    let encryption_key = serde_wasm_bindgen::to_value(&decryption_key).unwrap();
+
+    // log(decryption_key.to_string().as_str());
+
     encryption_key
 }
 // ====================================================== //
