@@ -102,10 +102,19 @@
         puzzle_public_input.o
       );
       console.log("decryption key: ", decryption_key);
+      console.log(
+        "puzzle_param.n: ",
+        puzzle_param.n,
+        "puzzle_secret_input.k: ",
+        puzzle_secret_input.k,
+        "puzzle_public_input.k_hash_value: ",
+        puzzle_public_input.k_hash_value
+      );
 
       // Encryption
-      const hash = await calculate_hash(puzzle_param.n);
+      const hash = await calculate_hash(puzzle_secret_input.k);
       console.log("hash: ", hash);
+
       const encrypted = encrypt("Hello World", hash);
       console.log("encrypted: ", encrypted);
 
