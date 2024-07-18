@@ -9,7 +9,7 @@
     <script type="module">
       import init, {
         generate_k,
-        get_puzzle_param,
+        get_puzzle,
         get_puzzle_public_input,
         get_puzzle_proof,
         verify_puzzle_proof,
@@ -34,22 +34,22 @@
       //   await fetch("http://localhost:8000/data/time_lock_puzzle_param.json")
       // ).json();
 
-      // Generate params for making time-lock puzzle
-      const puzzle_param = await get_puzzle_param(2048);
+      // Generate time-lock puzzle
+      const puzzle = await get_puzzle(2048);
 
-      console.log("puzzle_parameters: ", puzzle_param);
-
-      // Generate k (secret input is {k:k}) from n in time-lock puzzle parameters
-      const k = generate_k(puzzle_param.n);
-      console.log("k: ", k);
+      console.log("puzzle", puzzle);
 
       // Destructure time-lock puzzle parameters
-      const { g, n, y_two } = puzzle_param;
+      const [puzzle_param, puzzle_secret_input, puzzle_public_input] = puzzle;
 
-      // Generate public input for the time-lock puzzle
-      const puzzle_public_input = get_puzzle_public_input(k, g, n, y_two);
-
-      console.log("puzzle_public_input: ", puzzle_public_input);
+      console.log(
+        "puzzle_param: ",
+        puzzle_param,
+        "puzzle_secret_input: ",
+        puzzle_secret_input,
+        "puzzle_public_input: ",
+        puzzle_public_input
+      );
 
       // Generate zk-proof for the validity of time-lock puzzle
       //// 1. Get zkp param
@@ -74,7 +74,7 @@
         param,
         proving_key,
         puzzle_public_input,
-        { k: k }, // time-lock puzzle secret input
+        puzzle_secret_input, // time-lock puzzle secret input
         puzzle_param
       );
 

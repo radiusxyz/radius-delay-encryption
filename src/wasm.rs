@@ -23,7 +23,7 @@ use crate::encryption::poseidon_encryption_zkp::{
 };
 use crate::time_lock_puzzle::key_validation_circuit::KeyValidationCircuit;
 use crate::time_lock_puzzle::{
-    generate_time_lock_puzzle_param, generate_time_lock_puzzle_public_input, get_decryption_key,
+    generate_time_lock_puzzle_new, generate_time_lock_puzzle_public_input, get_decryption_key,
     prove_time_lock_puzzle_validity, solve_time_lock_puzzle, verify_time_lock_puzzle_zkp,
     TimeLockPuzzleParam, TimeLockPuzzlePublicInput, TimeLockPuzzleSecretInput,
 };
@@ -98,12 +98,12 @@ pub fn calculate_hash(k: JsValue) -> JsValue {
 // ================== Time-Lock Puzzle ================ //
 
 #[wasm_bindgen]
-pub fn get_puzzle_param(t: JsValue) -> JsValue {
+pub fn get_puzzle(t: JsValue) -> JsValue {
     let t = from_value::<u32>(t).unwrap();
 
-    let time_lock_puzzle_params = generate_time_lock_puzzle_param(t);
+    let time_lock_puzzle = generate_time_lock_puzzle_new(t);
 
-    serde_wasm_bindgen::to_value(&time_lock_puzzle_params).unwrap()
+    serde_wasm_bindgen::to_value(&time_lock_puzzle).unwrap()
 }
 
 #[wasm_bindgen]

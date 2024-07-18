@@ -76,6 +76,77 @@ pub fn generate_time_lock_puzzle_param(t: u32) -> TimeLockPuzzleParam {
     }
 }
 
+pub fn generate_time_lock_puzzle_new(
+    t: u32,
+) -> (
+    TimeLockPuzzleParam,
+    TimeLockPuzzleSecretInput,
+    TimeLockPuzzlePublicInput,
+) {
+    let g = BigUint::from_str(G).unwrap();
+    let n = BigUint::from_str(N).unwrap();
+
+    // y = g^{2^t}
+    let mut y = g.clone();
+    for _ in 0..t {
+        y = (&y * &y) % &n;
+    }
+
+    let y_two: BigUint = (&y * &y) % &n;
+
+    let r = thread_rng().sample::<BigUint, _>(RandomBits::new(128));
+    let s: BigUint = thread_rng().sample::<BigUint, _>(RandomBits::new(128));
+
+    let k = y.modpow(&s, &n);
+    let k_two = y_two.modpow(&s, &n);
+    let k_hash_value: HashValue = hash(k.clone());
+    let r1 = g.modpow(&r, &n);
+    let r2 = y_two.modpow(&r, &n);
+    let c = get_c(r1.clone(), r2.clone());
+    let z = &r + &s * &c;
+    let o = g.modpow(&s, &n);
+
+    // let sigma_protocol_param: SigmaProtocolParam = SigmaProtocolParam {
+    //     g: g.clone(),
+    //     n: n.clone(),
+    //     y_two: y_two.clone(),
+    // };
+    // let sigma_protocol_public_input: SigmaProtocolPublicInput = SigmaProtocolPublicInput {
+    //     r1: r1.clone(),
+    //     r2: r2.clone(),
+    //     z: z.clone(),
+    //     o: o.clone(),
+    //     k_two: k_two.clone(),
+    // };
+    // let key_validation_param = KeyValidationParam { n: n.clone() };
+    // let key_validation_public_input = KeyValidationPublicInput {
+    //     k_two: k_two.clone(),
+    //     k_hash_value: k_hash_value.clone(),
+    // };
+    // let key_validation_secret_input = KeyValidationSecretInput { k: k.clone() };
+
+    let time_lock_puzzle_param = TimeLockPuzzleParam {
+        g: g.clone(),
+        n: n.clone(),
+        y_two: y_two.clone(),
+    };
+    let time_lock_puzzle_secret_input: TimeLockPuzzleSecretInput =
+        TimeLockPuzzleSecretInput { k: k.clone() };
+    let time_lock_puzzle_public_input: TimeLockPuzzlePublicInput = TimeLockPuzzlePublicInput {
+        r1: r1.clone(),
+        r2: r2.clone(),
+        z: z.clone(),
+        o: o.clone(),
+        k_two: k_two.clone(),
+        k_hash_value: k_hash_value.clone(),
+    };
+    (
+        time_lock_puzzle_param,
+        time_lock_puzzle_secret_input,
+        time_lock_puzzle_public_input,
+    )
+}
+
 pub fn export_time_lock_puzzle_param(file_path: &str, time_lock_puzzle_param: TimeLockPuzzleParam) {
     let json_string = serde_json::to_string(&time_lock_puzzle_param).unwrap();
 
@@ -203,51 +274,6 @@ pub fn verify_time_lock_puzzle_zkp(
     verify_key_validity_zkp(&param, &verifying_key, &key_validation_public_input, &proof)
 }
 
-pub fn generate_time_lock_puzzle(
-    time_lock_puzzle_param: TimeLockPuzzleParam,
-) -> (
-    SigmaProtocolPublicInput,
-    KeyValidationParam,
-    KeyValidationPublicInput,
-    KeyValidationSecretInput,
-) {
-    let g = time_lock_puzzle_param.g.clone();
-    let n = time_lock_puzzle_param.n.clone();
-    let y = time_lock_puzzle_param.y.clone();
-    let y_two = time_lock_puzzle_param.y_two.clone();
-
-    let r = thread_rng().sample::<BigUint, _>(RandomBits::new(128));
-    let s = thread_rng().sample::<BigUint, _>(RandomBits::new(128));
-
-    // Generate sigma protocol public input
-    let sigma_protocol_param = SigmaProtocolParam {
-        n: n.clone(),
-        g: g.clone(),
-        y_two: y_two.clone(),
-    };
-    let sigma_protocol_public_input =
-        generate_sigma_protocol_public_input(&sigma_protocol_param, &r, &s);
-
-    // k = y^s mod n
-    let k = y.modpow(&s, &n);
-    let k_two = y_two.modpow(&s, &n);
-    let k_hash_value: HashValue = hash(k.clone());
-
-    // Generate key validation param & public & secret input
-    let key_validation_param = KeyValidationParam { n: n.clone() };
-    let key_validation_public_input = KeyValidationPublicInput {
-        k_two: k_two.clone(),
-        k_hash_value: k_hash_value.clone(),
-    };
-    let key_validation_secret_input = KeyValidationSecretInput { k: k.clone() };
-
-    (
-        sigma_protocol_public_input,
-        key_validation_param,
-        key_validation_public_input,
-        key_validation_secret_input,
-    )
-}
 #[cfg(test)]
 mod tests {
     use super::*;
