@@ -36,8 +36,10 @@ pub const N: &str = "25195908475657893494027183240048398571429282126204032027777
 
 #[derive(Debug, Serialize, Deserialize, Clone)]
 pub struct TimeLockPuzzleParam {
+    pub t: u32, // TODO: check
     pub g: BigUint,
     pub n: BigUint,
+    pub y: BigUint, // TODO: check
     pub y_two: BigUint,
 }
 
@@ -69,68 +71,50 @@ pub fn generate_time_lock_puzzle_param(t: u32) -> TimeLockPuzzleParam {
     let y_two: BigUint = (&y * &y) % &n;
 
     TimeLockPuzzleParam {
+        t,
         g: g.clone(),
         n: n.clone(),
+        y: y.clone(),
         y_two: y_two.clone(),
     }
 }
 
-pub fn generate_time_lock_puzzle_new(
-    t: u32,
-) -> (
-    TimeLockPuzzleParam,
-    TimeLockPuzzleSecretInput,
-    TimeLockPuzzlePublicInput,
-) {
-    let g = BigUint::from_str(G).unwrap();
-    let n = BigUint::from_str(N).unwrap();
+pub fn generate_time_lock_puzzle(
+    time_lock_puzzle_param: TimeLockPuzzleParam,
+) -> (TimeLockPuzzleSecretInput, TimeLockPuzzlePublicInput) {
+    let g = time_lock_puzzle_param.g.clone();
+    let n = time_lock_puzzle_param.n.clone();
+    let y = time_lock_puzzle_param.y.clone();
+    let y_two = time_lock_puzzle_param.y_two.clone();
 
-    // y = g^{2^t}
-    let mut y = g.clone();
-    for _ in 0..t {
-        y = (&y * &y) % &n;
-    }
-
-    let y_two: BigUint = (&y * &y) % &n;
-
+    // Generate random value r and s
     let r = thread_rng().sample::<BigUint, _>(RandomBits::new(128));
     let s: BigUint = thread_rng().sample::<BigUint, _>(RandomBits::new(128));
 
     let k = y.modpow(&s, &n);
-    let k_two = y_two.modpow(&s, &n);
     let k_hash_value: HashValue = hash(k.clone());
+
+    // k_two = y_two^s mod n
+    let k_two = y_two.modpow(&s, &n);
+
+    // r1 = g^r mod n
     let r1 = g.modpow(&r, &n);
+
+    // r2 = y_two^r mod n
     let r2 = y_two.modpow(&r, &n);
+
+    // c = H(r1, r2)
     let c = get_c(r1.clone(), r2.clone());
+
+    // z = (r + s * c) mod n
     let z = &r + &s * &c;
+
+    // o = g^s mod n
     let o = g.modpow(&s, &n);
 
-    // let sigma_protocol_param: SigmaProtocolParam = SigmaProtocolParam {
-    //     g: g.clone(),
-    //     n: n.clone(),
-    //     y_two: y_two.clone(),
-    // };
-    // let sigma_protocol_public_input: SigmaProtocolPublicInput = SigmaProtocolPublicInput {
-    //     r1: r1.clone(),
-    //     r2: r2.clone(),
-    //     z: z.clone(),
-    //     o: o.clone(),
-    //     k_two: k_two.clone(),
-    // };
-    // let key_validation_param = KeyValidationParam { n: n.clone() };
-    // let key_validation_public_input = KeyValidationPublicInput {
-    //     k_two: k_two.clone(),
-    //     k_hash_value: k_hash_value.clone(),
-    // };
-    // let key_validation_secret_input = KeyValidationSecretInput { k: k.clone() };
-
-    let time_lock_puzzle_param = TimeLockPuzzleParam {
-        g: g.clone(),
-        n: n.clone(),
-        y_two: y_two.clone(),
-    };
     let time_lock_puzzle_secret_input: TimeLockPuzzleSecretInput =
         TimeLockPuzzleSecretInput { k: k.clone() };
+
     let time_lock_puzzle_public_input: TimeLockPuzzlePublicInput = TimeLockPuzzlePublicInput {
         r1: r1.clone(),
         r2: r2.clone(),
@@ -139,11 +123,7 @@ pub fn generate_time_lock_puzzle_new(
         k_two: k_two.clone(),
         k_hash_value: k_hash_value.clone(),
     };
-    (
-        time_lock_puzzle_param,
-        time_lock_puzzle_secret_input,
-        time_lock_puzzle_public_input,
-    )
+    (time_lock_puzzle_secret_input, time_lock_puzzle_public_input)
 }
 
 pub fn export_time_lock_puzzle_param(file_path: &str, time_lock_puzzle_param: TimeLockPuzzleParam) {
@@ -160,36 +140,6 @@ pub fn import_time_lock_puzzle_param(file_path: &str) -> TimeLockPuzzleParam {
         serde_json::from_reader(file).expect("Unable to read file");
 
     time_lock_puzzle_param
-}
-
-pub fn generate_time_lock_puzzle_public_input(
-    k: BigUint,
-    g: BigUint,
-    n: BigUint,
-    y_two: BigUint,
-) -> TimeLockPuzzlePublicInput {
-    let r = thread_rng().sample::<BigUint, _>(RandomBits::new(128));
-    let s = thread_rng().sample::<BigUint, _>(RandomBits::new(128));
-
-    let r1 = g.modpow(&r, &n);
-    let r2 = y_two.modpow(&r, &n);
-    let c = get_c(r1.clone(), r2.clone());
-
-    let z = &r + &s * &c;
-    let o = g.modpow(&s, &n);
-    let k_two = y_two.modpow(&s, &n);
-
-    let k_hash_value: HashValue = hash(k.clone());
-
-    let time_lock_puzzle_public_input = TimeLockPuzzlePublicInput {
-        r1,
-        r2,
-        z,
-        o,
-        k_two,
-        k_hash_value,
-    };
-    time_lock_puzzle_public_input
 }
 
 pub fn solve_time_lock_puzzle(o: BigUint, t: u32, n: BigUint) -> BigUint {
@@ -209,9 +159,9 @@ pub fn get_decryption_key(o: BigUint, t: u32, n: BigUint) -> HashValue {
     encryption_key
 }
 
-pub fn prove_time_lock_puzzle_validity(
-    param: &ParamsKZG<Bn256>,
-    proving_key: &ProvingKey<G1Affine>,
+pub fn prove_time_lock_puzzle(
+    time_lock_puzzle_zkp_param: &ParamsKZG<Bn256>,
+    time_lock_puzzle_zkp_proving_key: &ProvingKey<G1Affine>,
     time_lock_puzzle_public_input: TimeLockPuzzlePublicInput,
     time_lock_puzzle_secret_input: TimeLockPuzzleSecretInput,
     time_lock_puzzle_param: TimeLockPuzzleParam,
@@ -228,8 +178,8 @@ pub fn prove_time_lock_puzzle_validity(
     };
 
     let proof = prove_key_validity(
-        &param,
-        &proving_key,
+        &time_lock_puzzle_zkp_param,
+        &time_lock_puzzle_zkp_proving_key,
         &key_validation_param,
         &key_validation_public_input,
         &key_validation_secret_input,
@@ -238,12 +188,12 @@ pub fn prove_time_lock_puzzle_validity(
     proof
 }
 
-pub fn verify_time_lock_puzzle_zkp(
-    param: &ParamsKZG<Bn256>,
-    verifying_key: &VerifyingKey<G1Affine>,
+pub fn verify_time_lock_puzzle_proof(
+    time_lock_puzzle_zkp_param: &ParamsKZG<Bn256>,
+    time_lock_puzzle_zkp_verifying_key: &VerifyingKey<G1Affine>,
     time_lock_puzzle_public_input: &TimeLockPuzzlePublicInput,
     time_lock_puzzle_param: &TimeLockPuzzleParam,
-    proof: &[u8],
+    time_lock_puzzle_proof: &[u8],
 ) -> bool {
     let sigma_protocol_public_input = SigmaProtocolPublicInput {
         r1: time_lock_puzzle_public_input.r1.clone(),
@@ -269,7 +219,12 @@ pub fn verify_time_lock_puzzle_zkp(
         k_hash_value: time_lock_puzzle_public_input.k_hash_value.clone(),
     };
 
-    verify_key_validity_zkp(&param, &verifying_key, &key_validation_public_input, &proof)
+    verify_key_validity_zkp(
+        &time_lock_puzzle_zkp_param,
+        &time_lock_puzzle_zkp_verifying_key,
+        &key_validation_public_input,
+        &time_lock_puzzle_proof,
+    )
 }
 
 #[cfg(test)]
