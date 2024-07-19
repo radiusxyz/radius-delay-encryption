@@ -123,8 +123,6 @@ pub fn prove(
 
     let k_limbs = decompose_big::<Fr>(encryption_secret_input.k.clone(), LIMB_COUNT, LIMB_WIDTH);
 
-    let encryption_key = HashValue::new([k_limbs[0].to_bytes(), k_limbs[1].to_bytes()]);
-
     let spec = Spec::<Fr, 5, 4>::new(8, 57);
     let circuit = EncryptionCircuit::<Fr, 5, 4> {
         spec,

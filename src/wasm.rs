@@ -1,5 +1,4 @@
 use std::io::BufReader;
-use std::str::FromStr;
 
 use encryptor::hash::hash;
 use encryptor::hash::types::HashValue;
@@ -23,10 +22,9 @@ use crate::encryption::encryption_zkp::{
 use crate::time_lock_puzzle::key_validation_circuit::KeyValidationCircuit;
 use crate::time_lock_puzzle::{
     generate_time_lock_puzzle as generate_tlp,
-    generate_time_lock_puzzle_param as generate_tlp_param, get_decryption_key as get_key,
-    prove_time_lock_puzzle as prove_tlp, solve_time_lock_puzzle as solve_tlp,
-    verify_time_lock_puzzle_proof as verify_tlp_proof, TimeLockPuzzleParam,
-    TimeLockPuzzlePublicInput, TimeLockPuzzleSecretInput,
+    generate_time_lock_puzzle_param as generate_tlp_param, prove_time_lock_puzzle as prove_tlp,
+    solve_time_lock_puzzle as solve_tlp, verify_time_lock_puzzle_proof as verify_tlp_proof,
+    TimeLockPuzzleParam, TimeLockPuzzlePublicInput, TimeLockPuzzleSecretInput,
 };
 
 // ================== Time-Lock Puzzle ================ //
