@@ -15,9 +15,9 @@ use serde_wasm_bindgen::{self, from_value};
 use wasm_bindgen::prelude::*;
 use wasm_bindgen::JsValue;
 
-use crate::encryption::poseidon_encryption::{decrypt as decryptor, encrypt as encryptor};
-use crate::encryption::poseidon_encryption_circuit::PoseidonEncryptionCircuit as EncryptionCircuit;
-use crate::encryption::poseidon_encryption_zkp::{
+use crate::encryption::encryption::{decrypt as decryptor, encrypt as encryptor};
+use crate::encryption::encryption_circuit::EncryptionCircuit;
+use crate::encryption::encryption_zkp::{
     generate_inputs, prove as prove_encryption_zkp, verify as verify_encryption_zkp,
     EncryptionPublicInput, EncryptionSecretInput,
 };
