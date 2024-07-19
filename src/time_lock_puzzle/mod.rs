@@ -14,7 +14,6 @@ use halo2_proofs::poly::kzg::commitment::ParamsKZG;
 use num_bigint::{BigUint, RandomBits};
 use rand::{thread_rng, Rng};
 use serde::{Deserialize, Serialize};
-use sigma_protocol::generate_sigma_protocol_public_input;
 
 use crate::time_lock_puzzle::key_validation_zkp::{
     prove as prove_key_validity, verify as verify_key_validity_zkp, KeyValidationParam,
