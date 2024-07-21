@@ -8,7 +8,6 @@ use pvde::encryption::encryption::encrypt;
 use pvde::encryption::encryption_zkp::{
     load, prove, verify, EncryptionPublicInput, EncryptionSecretInput,
 };
-use pvde::encryption::poseidon_encryption::encrypt;
 
 fn encryption_bench(name: &str, c: &mut Criterion) {
     // Define prover and verifier names
