@@ -8,7 +8,7 @@ pub mod types;
 pub use types::*;
 
 use crate::chip::{FULL_ROUND, PARTIAL_ROUND};
-use crate::poseidon::Poseidon;
+use crate::encryptor::Encryptor;
 
 pub const BITS_LEN: usize = 2048;
 pub const LIMB_WIDTH: usize = 64;
@@ -17,8 +17,8 @@ pub const LIMB_COUNT: usize = BITS_LEN / LIMB_WIDTH;
 pub const T: usize = 5; // The number of fields.
 pub const RATE: usize = 4; // Rate
 
-pub fn hash(value: BigUint) -> PoseidonHashValue {
-    let mut hasher = Poseidon::<Fr, T, RATE>::new_hash(FULL_ROUND, PARTIAL_ROUND);
+pub fn hash(value: BigUint) -> HashValue {
+    let mut hasher = Encryptor::<Fr, T, RATE>::new_hash(FULL_ROUND, PARTIAL_ROUND);
 
     let base1: Fr = big_to_fe(BigUint::from(
         2_u128.pow((LIMB_WIDTH as u128).try_into().unwrap()),
@@ -46,5 +46,5 @@ pub fn hash(value: BigUint) -> PoseidonHashValue {
 
     let hashed = hasher.squeeze(1);
 
-    PoseidonHashValue::new([hashed[1].to_bytes(), hashed[2].to_bytes()])
+    HashValue::new([hashed[1].to_bytes(), hashed[2].to_bytes()])
 }

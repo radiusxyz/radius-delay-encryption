@@ -15,9 +15,9 @@ pub const FULL_ROUND: usize = 8;
 /// number of partial round
 pub const PARTIAL_ROUND: usize = 57;
 
-/// poseidon chip constrains permutation operations
+/// chip constrains permutation operations
 #[derive(Debug, Clone)]
-pub struct PoseidonChip<
+pub struct Chip<
     F: PrimeField + FromUniformBytes<64>,
     const T: usize,
     const RATE: usize,
@@ -38,14 +38,14 @@ impl<
         const R_P: usize,
         const T: usize,
         const RATE: usize,
-    > PoseidonChip<F, T, RATE, R_F, R_P>
+    > Chip<F, T, RATE, R_F, R_P>
 {
     /// Construct main gate
     pub fn main_gate(&self) -> MainGate<F> {
         MainGate::<_>::new(self.main_gate_config.clone())
     }
 
-    /// Construct PoseidonChip
+    /// Construct Chip
     pub fn new_enc(
         ctx: &mut RegionCtx<'_, F>,
         spec: &Spec<F, T, RATE>,
@@ -117,7 +117,7 @@ impl<
         })
     }
 
-    /// Construct PoseidonChip
+    /// Construct Chip
     pub fn new_hash(
         ctx: &mut RegionCtx<'_, F>,
         spec: &Spec<F, T, RATE>,
@@ -145,7 +145,7 @@ impl<
     pub fn set_inputs(&mut self, elements: &[AssignedValue<F>]) {
         self.absorbing.extend_from_slice(elements);
     }
-    // Internally expose poseidion parameters and matrices
+    // Internally expose parameters and matrices
     pub(super) fn r_f_half(&self) -> usize {
         self.spec.r_f() / 2
     }
@@ -181,7 +181,7 @@ impl<
         const R_P: usize,
         const T: usize,
         const RATE: usize,
-    > PoseidonChip<F, T, RATE, R_F, R_P>
+    > Chip<F, T, RATE, R_F, R_P>
 {
     /// Applies full state sbox then adds constants to each word in the state
     fn sbox_full(&mut self, ctx: &mut RegionCtx<'_, F>, constants: &[F; T]) -> Result<(), Error> {
@@ -323,7 +323,7 @@ impl<
         Ok(())
     }
 
-    /// Constrains poseidon permutation while mutating the given state
+    /// Constrains permutation while mutating the given state
     pub fn permutation(
         &mut self,
         ctx: &mut RegionCtx<'_, F>,
@@ -365,7 +365,7 @@ impl<
         Ok(())
     }
 
-    /// Constrains poseidon permutation while mutating the given state
+    /// Constrains permutation while mutating the given state
     pub fn perm_hash(
         &mut self,
         ctx: &mut RegionCtx<'_, F>,

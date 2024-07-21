@@ -1,6 +1,9 @@
 use std::fs::File;
 use std::io::BufReader;
 
+use encryptor::chip::{FULL_ROUND, PARTIAL_ROUND};
+use encryptor::hash::types::HashValue;
+use encryptor::spec::Spec;
 use halo2_proofs::halo2curves::bn256::{Bn256, Fr, G1Affine};
 use halo2_proofs::plonk::{
     create_proof, keygen_pk, keygen_vk, verify_proof, ProvingKey, VerifyingKey,
@@ -16,9 +19,6 @@ use halo2_proofs::transcript::{
 use halo2_proofs::SerdeFormat;
 use maingate::decompose_big;
 use num_bigint::BigUint;
-use poseidon::chip::{FULL_ROUND, PARTIAL_ROUND};
-use poseidon::hash::types::PoseidonHashValue;
-use poseidon::spec::Spec;
 use rand::rngs::OsRng;
 use serde::{Deserialize, Serialize};
 
@@ -197,8 +197,8 @@ pub fn verify(
 mod tests {
     use std::str::FromStr;
 
+    use encryptor::hash;
     use num_bigint::RandomBits;
-    use poseidon::hash;
     use rand::{thread_rng, Rng};
 
     use super::*;

@@ -1,10 +1,11 @@
 use std::str::FromStr;
 
+use encryptor::chip::{FULL_ROUND, PARTIAL_ROUND};
+use encryptor::encryptor::Encryptor;
 use halo2_proofs::halo2curves::bn256::Fr;
 use maingate::{decompose_big, fe_to_big};
 use num_bigint::BigUint;
-use poseidon::chip::{FULL_ROUND, PARTIAL_ROUND};
-use poseidon::poseidon::Poseidon;
+use serde::{Deserialize, Serialize};
 
 use super::{G, LIMB_COUNT, LIMB_WIDTH, N, RATE, T};
 
@@ -116,7 +117,7 @@ pub fn verify(
 
 // c <- Hash (r_1, r_2);
 pub fn get_c(r1: BigUint, r2: BigUint) -> BigUint {
-    let mut hasher = Poseidon::<Fr, T, RATE>::new_hash(FULL_ROUND, PARTIAL_ROUND);
+    let mut hasher = Encryptor::<Fr, T, RATE>::new_hash(FULL_ROUND, PARTIAL_ROUND);
 
     let r1_limbs = decompose_big::<Fr>(r1, LIMB_COUNT, LIMB_WIDTH);
     hasher.update(&r1_limbs);

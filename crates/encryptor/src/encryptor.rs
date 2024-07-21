@@ -4,15 +4,15 @@ use crate::spec::{Spec, State};
 
 /// output when desired
 #[derive(Debug, Clone)]
-pub struct Poseidon<F: PrimeField, const T: usize, const RATE: usize> {
+pub struct Encryptor<F: PrimeField, const T: usize, const RATE: usize> {
     /// publify state for usage
     pub state: State<F, T>,
     spec: Spec<F, T, RATE>,
     absorbing: Vec<F>,
 }
 
-impl<F: FromUniformBytes<64>, const T: usize, const RATE: usize> Poseidon<F, T, RATE> {
-    /// Constructs a clear state poseidon instance
+impl<F: FromUniformBytes<64>, const T: usize, const RATE: usize> Encryptor<F, T, RATE> {
+    /// Constructs a clear state instance
     pub fn new_enc(r_f: usize, r_p: usize, k0: F, k1: F) -> Self {
         Self {
             spec: Spec::new(r_f, r_p),
@@ -21,7 +21,7 @@ impl<F: FromUniformBytes<64>, const T: usize, const RATE: usize> Poseidon<F, T, 
             absorbing: Vec::new(),
         }
     }
-    /// Constructs a state for poseidon hash
+    /// Constructs a state for hash
     pub fn new_hash(r_f: usize, r_p: usize) -> Self {
         Self {
             spec: Spec::new(r_f, r_p),

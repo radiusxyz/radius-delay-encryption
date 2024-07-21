@@ -2,8 +2,8 @@ use std::str::FromStr;
 
 // bench-mark tool
 use criterion::{criterion_group, criterion_main, Criterion};
+use encryptor::hash;
 use num_bigint::{BigUint, RandomBits};
-use poseidon::hash;
 use pvde::time_lock_puzzle::key_validation_zkp::{
     load, prove, verify, KeyValidationParam, KeyValidationPublicInput, KeyValidationSecretInput,
 };

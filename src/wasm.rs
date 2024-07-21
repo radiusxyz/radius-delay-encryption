@@ -1,18 +1,15 @@
 use std::io::BufReader;
 use std::str::FromStr;
 
-use big_integer::big_pow_mod;
+use encryptor::hash::hash;
+use encryptor::hash::types::HashValue;
 use halo2_proofs::halo2curves::bn256::{Bn256, Fr, G1Affine};
 use halo2_proofs::plonk::{ProvingKey, VerifyingKey};
 use halo2_proofs::poly::commitment::Params; /* Zeroknight : without it, ParamsKZG::Read error!! */
 use halo2_proofs::poly::kzg::commitment::ParamsKZG;
 use halo2_proofs::SerdeFormat;
 use js_sys::Uint8Array;
-use num_bigint::{BigUint, RandomBits};
-use poseidon::hash::hash;
-use poseidon::hash::types::PoseidonHashValue;
-use rand::{thread_rng, Rng};
-use serde::{Deserialize, Serialize};
+use num_bigint::BigUint;
 use serde_wasm_bindgen::{self, from_value};
 //= WASM =//
 use wasm_bindgen::prelude::*;

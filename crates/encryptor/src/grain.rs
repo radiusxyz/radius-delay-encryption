@@ -70,18 +70,18 @@ impl<F: FromUniformBytes<64>, const T: usize, const RATE: usize> Grain<F, T, RAT
         (constants, MDSMatrix::cauchy(&xs, &ys))
     }
 
-    /// Credit: https://github.com/zcash/halo2/tree/main/halo2_gadgets/src/primitives/poseidon
+    /// Credit: https://github.com/zcash/halo2/tree/main/halo2_gadgets/src/primitives/
     /// Returns the next field element from this Grain instantiation.
     pub(super) fn next_field_element(&mut self) -> F {
         // Loop until we get an element in the field.
         loop {
             let mut bytes = F::Repr::default();
 
-            // Poseidon reference impl interprets the bits as a repr in MSB order, because
+            // Reference impl interprets the bits as a repr in MSB order, because
             // it's easy to do that in Python. Meanwhile, our field elements all use LSB
             // order. There's little motivation to diverge from the reference impl; these
             // are all constants, so we aren't introducing big-endianness into the rest of
-            // the circuit (assuming unkeyed Poseidon, but we probably wouldn't want to
+            // the circuit (assuming unkeyed, but we probably wouldn't want to
             // implement Grain inside a circuit, so we'd use a different round constant
             // derivation function there).
             let view = bytes.as_mut();
@@ -99,13 +99,13 @@ impl<F: FromUniformBytes<64>, const T: usize, const RATE: usize> Grain<F, T, RAT
         }
     }
 
-    /// Credit: https://github.com/zcash/halo2/tree/main/halo2_gadgets/src/primitives/poseidon
+    /// Credit: https://github.com/zcash/halo2/tree/main/halo2_gadgets/src/primitives/
     /// Returns the next field element from this Grain instantiation, without
     /// using rejection sampling.
     pub(super) fn next_field_element_without_rejection(&mut self) -> F {
         let mut bytes = [0u8; 64];
 
-        // Poseidon reference impl interprets the bits as a repr in MSB order, because
+        // Reference impl interprets the bits as a repr in MSB order, because
         // it's easy to do that in Python. Additionally, it does not use rejection
         // sampling in cases where the constants don't specifically need to be uniformly
         // random for security. We do not provide APIs that take a field-element-sized

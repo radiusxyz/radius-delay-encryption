@@ -5,18 +5,18 @@ use halo2wrong::RegionCtx;
 use maingate::{AssignedValue, MainGate, MainGateConfig, MainGateInstructions};
 
 use super::cipher::MESSAGE_CAPACITY;
-use crate::chip::{PoseidonChip, FULL_ROUND, PARTIAL_ROUND};
+use crate::chip::{Chip, FULL_ROUND, PARTIAL_ROUND};
 use crate::spec::Spec;
 
 #[derive(Clone, Debug)]
-pub struct PoseidonEncChip<
+pub struct EncChip<
     F: PrimeField + FromUniformBytes<64>,
     const T: usize,
     const RATE: usize,
     const R_F: usize,
     const R_P: usize,
 > {
-    pub poseidon_chip: PoseidonChip<F, T, RATE, R_F, R_P>,
+    pub chip: Chip<F, T, RATE, R_F, R_P>,
     pub pose_key0: F,
     pub pose_key1: F,
 }
@@ -27,7 +27,7 @@ impl<
         const R_P: usize,
         const T: usize,
         const RATE: usize,
-    > PoseidonEncChip<F, T, RATE, R_F, R_P>
+    > EncChip<F, T, RATE, R_F, R_P>
 {
     pub fn new(
         ctx: &mut RegionCtx<'_, F>,
@@ -35,18 +35,13 @@ impl<
         main_gate_config: &MainGateConfig,
         sk: [F; 2],
     ) -> Result<Self, Error> {
-        let encryption_chip = PoseidonChip::<F, T, RATE, R_F, R_P>::new_enc(
-            ctx,
-            spec,
-            main_gate_config,
-            &sk[0],
-            &sk[1],
-        )?;
+        let encryption_chip =
+            Chip::<F, T, RATE, R_F, R_P>::new_enc(ctx, spec, main_gate_config, &sk[0], &sk[1])?;
 
-        // let encryption_key = PoseidonEncryptionKey::<F>::init();
+        // let encryption_key = EncryptionKey::<F>::init();
 
         Ok(Self {
-            poseidon_chip: encryption_chip,
+            chip: encryption_chip,
             pose_key0: sk[0],
             pose_key1: sk[1],
         })
@@ -59,25 +54,18 @@ impl<
     ) -> Result<Vec<AssignedValue<F>>, Error> {
         let mut cipher_text = vec![];
         // Get elements to be encrypted
-        let input_elements = self.poseidon_chip.absorbing.clone();
-        let main_gate = self.poseidon_chip.main_gate();
+        let input_elements = self.chip.absorbing.clone();
+        let main_gate = self.chip.main_gate();
 
         // Flush the input que
-        self.poseidon_chip.absorbing.clear();
+        self.chip.absorbing.clear();
 
         let mut i = 0;
 
         // Apply permutation to `RATE` sized chunks
         for inputs in input_elements.chunks(RATE) {
             // Add inputs along with constants
-            for (word, input) in self
-                .poseidon_chip
-                .state
-                .0
-                .iter_mut()
-                .skip(1)
-                .zip(inputs.iter())
-            {
+            for (word, input) in self.chip.state.0.iter_mut().skip(1).zip(inputs.iter()) {
                 *word = main_gate.add(ctx, word, input)?;
                 if i < MESSAGE_CAPACITY {
                     cipher_text.push(word.clone());
@@ -85,10 +73,10 @@ impl<
                 }
             }
 
-            self.poseidon_chip.permutation(ctx, vec![])?;
+            self.chip.permutation(ctx, vec![])?;
         }
 
-        cipher_text.push(self.poseidon_chip.state.0[1].clone());
+        cipher_text.push(self.chip.state.0[1].clone());
 
         Ok(cipher_text)
     }
@@ -100,8 +88,7 @@ pub struct EncryptionCircuit<
     const T: usize,
     const RATE: usize,
 > {
-    // Poseidon
-    pub spec: Spec<F, T, RATE>, // Spec for Poseidon Encryption
+    pub spec: Spec<F, T, RATE>, // Spec for Encryption
     pub data: Value<Vec<F>>,    // data to be encrypted
     pub key: [F; 2],            // the pub setting depend on usage
     pub expected: Vec<F>,       // expected cipher text
@@ -129,7 +116,7 @@ impl<F: PrimeField + FromUniformBytes<64>, const T: usize, const RATE: usize> Ci
         let main_gate = MainGate::<F>::new(config.clone());
 
         layouter.assign_region(
-            || "poseidon cipher",
+            || "cipher",
             |region| {
                 let offset = 0;
                 let ctx = &mut RegionCtx::new(region, offset);
@@ -146,19 +133,19 @@ impl<F: PrimeField + FromUniformBytes<64>, const T: usize, const RATE: usize> Ci
 
                 // new assigns initial_state into cells.
                 let mut pos_encryption_chip =
-                    PoseidonEncChip::<F, T, RATE, FULL_ROUND, PARTIAL_ROUND>::new(
+                    EncChip::<F, T, RATE, FULL_ROUND, PARTIAL_ROUND>::new(
                         ctx, &self.spec, &config, self.key,
                     )?;
 
                 // check the assigned initial state
 
                 // permute before state data addtion
-                pos_encryption_chip.poseidon_chip.permutation(ctx, vec![])?;
+                pos_encryption_chip.chip.permutation(ctx, vec![])?;
 
                 // set the data to be an input to the encryption
                 for e in self.data.as_ref().transpose_vec(MESSAGE_CAPACITY) {
                     let e = main_gate.assign_value(ctx, e.map(|v| *v))?;
-                    pos_encryption_chip.poseidon_chip.set_inputs(&[e.clone()]);
+                    pos_encryption_chip.chip.set_inputs(&[e.clone()]);
                 }
 
                 // add the input to the currentn state and output encrypted result
@@ -184,24 +171,24 @@ mod tests {
 
     use crate::chip::{FULL_ROUND, PARTIAL_ROUND};
     use crate::encryption::chip::EncryptionCircuit;
-    use crate::encryption::cipher::{PoseidonCipher, MESSAGE_CAPACITY};
-    use crate::encryption::types::PoseidonEncryptionKey;
+    use crate::encryption::cipher::{Cipher, MESSAGE_CAPACITY};
+    use crate::encryption::types::EncryptionKey;
     use crate::spec::Spec;
 
     #[test]
     fn test_pos_enc() {
         fn run<F: FromUniformBytes<64> + Ord, const T: usize, const RATE: usize>() {
-            let key = PoseidonEncryptionKey::<F> {
+            let key = EncryptionKey::<F> {
                 key0: F::random(OsRng),
                 key1: F::random(OsRng),
             };
 
-            let mut ref_pos_enc = PoseidonCipher::<F, FULL_ROUND, PARTIAL_ROUND, T, RATE>::new();
+            let mut ref_pos_enc = Cipher::<F, FULL_ROUND, PARTIAL_ROUND, T, RATE>::new();
 
             let spec = Spec::<F, T, RATE>::new(8, 57);
             let inputs = (0..(MESSAGE_CAPACITY)).map(|_| F::ONE).collect::<Vec<F>>();
 
-            //== Poseidon Encryption ==//
+            //== Encryption ==//
             let ref_cipher = ref_pos_enc.encrypt(&inputs, &[key.key0, key.key1]).unwrap();
 
             //== Circuit ==//

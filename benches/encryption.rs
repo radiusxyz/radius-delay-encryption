@@ -2,14 +2,14 @@ use std::str::FromStr;
 
 // bench-mark tool
 use criterion::{criterion_group, criterion_main, Criterion};
+use encryptor::hash;
 use num_bigint::BigUint;
-use poseidon::hash;
-use pvde::encryption::poseidon_encryption::encrypt;
-use pvde::encryption::poseidon_encryption_zkp::{
-    load, prove, verify, PoseidonEncryptionPublicInput, PoseidonEncryptionSecretInput,
+use pvde::encryption::encryption::encrypt;
+use pvde::encryption::encryption_zkp::{
+    load, prove, verify, EncryptionPublicInput, EncryptionSecretInput,
 };
 
-fn poseidon_encryption_bench(name: &str, c: &mut Criterion) {
+fn encryption_bench(name: &str, c: &mut Criterion) {
     // Define prover and verifier names
     let prover_name = "Measure prover time in ".to_owned() + name;
     let verifier_name = "Measure verifier time in ".to_owned() + name;
@@ -20,13 +20,13 @@ fn poseidon_encryption_bench(name: &str, c: &mut Criterion) {
 
     let k = BigUint::from_str("1").unwrap();
     let k_hash_value = hash::hash(k.clone());
-    
+
     let encrypted_data = encrypt(data, &k_hash_value);
-    let poseidon_encryption_public_input = PoseidonEncryptionPublicInput {
+    let encryption_public_input = EncryptionPublicInput {
         encrypted_data,
         k_hash_value: k_hash_value.clone(),
     };
-    let poseidon_encryption_secret_input = PoseidonEncryptionSecretInput {
+    let encryption_secret_input = EncryptionSecretInput {
         data: data.to_string(),
         k,
     };
@@ -37,8 +37,8 @@ fn poseidon_encryption_bench(name: &str, c: &mut Criterion) {
             prove(
                 &params,
                 &proving_key,
-                &poseidon_encryption_public_input,
-                &poseidon_encryption_secret_input,
+                &encryption_public_input,
+                &encryption_secret_input,
             );
         });
     });
@@ -47,26 +47,21 @@ fn poseidon_encryption_bench(name: &str, c: &mut Criterion) {
     let proof = prove(
         &params,
         &proving_key,
-        &poseidon_encryption_public_input,
-        &poseidon_encryption_secret_input,
+        &encryption_public_input,
+        &encryption_secret_input,
     );
 
     // Benchmark the verification
     c.bench_function(&verifier_name, |b| {
         b.iter(|| {
-            let is_valid = verify(
-                &params,
-                &verifying_key,
-                &poseidon_encryption_public_input,
-                &proof,
-            );
+            let is_valid = verify(&params, &verifying_key, &encryption_public_input, &proof);
             assert!(is_valid);
         });
     });
 }
 
 fn criterion_benchmark(c: &mut Criterion) {
-    poseidon_encryption_bench("poseidon encryption verify", c);
+    encryption_bench("encryption verify", c);
 }
 
 criterion_group!(benches, criterion_benchmark);

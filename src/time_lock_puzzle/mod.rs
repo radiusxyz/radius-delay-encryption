@@ -7,9 +7,13 @@ use std::fs::File;
 use std::io::Write;
 use std::str::FromStr;
 
-use num_bigint::BigUint;
-use poseidon::hash::hash;
-use poseidon::hash::types::PoseidonHashValue;
+use encryptor::hash::hash;
+use encryptor::hash::types::HashValue;
+use halo2_proofs::halo2curves::bn256::{Bn256, G1Affine};
+use halo2_proofs::plonk::{ProvingKey, VerifyingKey};
+use halo2_proofs::poly::kzg::commitment::ParamsKZG;
+use num_bigint::{BigUint, RandomBits};
+use rand::{thread_rng, Rng};
 use serde::{Deserialize, Serialize};
 
 const BITS_LEN: usize = 2048;

@@ -146,7 +146,7 @@ impl<F: PrimeField, const T: usize, const RATE: usize> MDSMatrices<F, T, RATE> {
     }
 }
 
-/// `MDSMatrix` is applied to `State` to achive linear layer of Poseidon
+/// `MDSMatrix` is applied to `State` to achive linear layer of Encryptor
 #[derive(Clone, Debug, Default)]
 pub struct MDSMatrix<F: PrimeField, const T: usize, const RATE: usize>(pub(crate) Matrix<F, T>);
 

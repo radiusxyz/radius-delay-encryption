@@ -3,7 +3,7 @@ use halo2_proofs::halo2curves::group::ff::PrimeField;
 use crate::spec::{Spec, State};
 
 impl<F: PrimeField, const T: usize, const RATE: usize> Spec<F, T, RATE> {
-    /// Applies the Poseidon permutation to the given state
+    /// Applies the permutation to the given state
     pub fn permute(&self, state: &mut State<F, T>) {
         let r_f = self.r_f / 2;
 
@@ -58,7 +58,7 @@ mod tests {
     use crate::spec::tests::SpecRef;
     use crate::spec::Spec;
 
-    /// We want to keep non-optimized poseidon construction and permutation to
+    /// We want to keep non-optimized construction and permutation to
     /// cross test with optimized one
     impl<F: PrimeField, const T: usize, const RATE: usize> SpecRef<F, T, RATE> {
         fn permute(&self, state: &mut State<F, T>) {
@@ -136,7 +136,7 @@ mod tests {
     #[test]
     fn test_against_test_vectors() {
         // https://extgit.iaik.tugraz.at/krypto/hadeshash/-/blob/master/code/test_vectors.txt
-        // poseidonperm_x5_254_3
+        // perm_x5_254_3
         {
             const R_F: usize = 8;
             const R_P: usize = 57;
@@ -172,7 +172,7 @@ mod tests {
         }
 
         // https://extgit.iaik.tugraz.at/krypto/hadeshash/-/blob/master/code/test_vectors.txt
-        // poseidonperm_x5_254_5
+        // perm_x5_254_5
         {
             const R_F: usize = 8;
             const R_P: usize = 60;

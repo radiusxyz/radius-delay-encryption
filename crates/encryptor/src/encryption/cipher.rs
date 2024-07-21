@@ -5,13 +5,13 @@ use num_bigint::BigUint;
 use rand_core::Error;
 
 use crate::chip::{FULL_ROUND, PARTIAL_ROUND};
-use crate::poseidon::Poseidon;
+use crate::encryptor::Encryptor;
 
 pub const MESSAGE_CAPACITY: usize = 11; // max 31
 pub const CIPHER_SIZE: usize = MESSAGE_CAPACITY + 1;
 
 #[derive(Debug, Clone, Copy)]
-pub struct PoseidonCipher<
+pub struct Cipher<
     F: PrimeField + FromUniformBytes<64>,
     const R_F: usize,
     const R_P: usize,
@@ -23,12 +23,12 @@ pub struct PoseidonCipher<
 }
 
 impl<F, const R_F: usize, const R_P: usize, const T: usize, const RATE: usize> Default
-    for PoseidonCipher<F, R_F, R_P, T, RATE>
+    for Cipher<F, R_F, R_P, T, RATE>
 where
     F: PrimeField + FromUniformBytes<64> + Default,
 {
     fn default() -> Self {
-        PoseidonCipher {
+        Cipher {
             cipher_byte_size: Default::default(),
             cipher: [F::default(); CIPHER_SIZE],
         }
@@ -36,7 +36,7 @@ where
 }
 
 impl<F, const R_F: usize, const R_P: usize, const T: usize, const RATE: usize>
-    PoseidonCipher<F, R_F, R_P, T, RATE>
+    Cipher<F, R_F, R_P, T, RATE>
 where
     F: PrimeField + FromUniformBytes<64>,
 {
@@ -63,7 +63,7 @@ where
         data: &[F],
         encryption_key: &[F; 2],
     ) -> Result<[F; CIPHER_SIZE], Error> {
-        let mut encryptor = Poseidon::<F, T, RATE>::new_enc(
+        let mut encryptor = Encryptor::<F, T, RATE>::new_enc(
             FULL_ROUND,
             PARTIAL_ROUND,
             encryption_key[0],
@@ -72,7 +72,7 @@ where
 
         let mut cipher = [F::ZERO; CIPHER_SIZE];
 
-        // Permutation is update in Poseidon
+        // Permutation is update in Encryptor
         encryptor.update(&[]);
         encryptor.squeeze(0);
 
@@ -111,7 +111,7 @@ where
         cipher: &[F; CIPHER_SIZE],
         decryption_key: &[F; 2],
     ) -> Result<[F; MESSAGE_CAPACITY], Error> {
-        let mut decryptor = Poseidon::<F, T, RATE>::new_enc(
+        let mut decryptor = Encryptor::<F, T, RATE>::new_enc(
             FULL_ROUND,
             PARTIAL_ROUND,
             decryption_key[0],
@@ -204,14 +204,14 @@ mod tests {
     use ff::Field;
     use halo2_proofs::halo2curves::bn256::Fr;
 
-    use crate::encryption::cipher::{PoseidonCipher, MESSAGE_CAPACITY};
-    use crate::hash::types::PoseidonHashValue;
+    use crate::encryption::cipher::{Cipher, MESSAGE_CAPACITY};
+    use crate::hash::types::HashValue;
 
     #[test]
     fn test_encryption() {
-        let hash_value = PoseidonHashValue::new([Fr::ONE.into(); 2]);
+        let hash_value = HashValue::new([Fr::ONE.into(); 2]);
 
-        let mut cipher = PoseidonCipher::<Fr, 8, 57, 5, 4>::new();
+        let mut cipher = Cipher::<Fr, 8, 57, 5, 4>::new();
         let data = [Fr::default(); MESSAGE_CAPACITY];
 
         let symmetric_key = [

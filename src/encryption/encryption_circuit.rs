@@ -1,6 +1,11 @@
 // added for verify_delay_hash
 use std::marker::PhantomData;
 
+use encryptor::chip::{Chip, FULL_ROUND, PARTIAL_ROUND};
+use encryptor::encryption::chip::EncChip;
+use encryptor::encryption::cipher::MESSAGE_CAPACITY;
+use encryptor::hash::chip::HashChip;
+use encryptor::spec::Spec;
 use ff::{FromUniformBytes, PrimeField};
 use halo2_proofs::circuit::AssignedCell;
 use halo2wrong::halo2::circuit::{SimpleFloorPlanner, Value};
@@ -8,20 +13,15 @@ use halo2wrong::halo2::plonk::{Circuit, ConstraintSystem, Error};
 use halo2wrong::RegionCtx;
 use maingate::{big_to_fe, decompose_big, MainGate, MainGateConfig, MainGateInstructions};
 use num_bigint::BigUint;
-use poseidon::chip::{PoseidonChip, FULL_ROUND, PARTIAL_ROUND};
-use poseidon::encryption::chip::PoseidonEncChip;
-use poseidon::encryption::cipher::MESSAGE_CAPACITY;
-use poseidon::hash::chip::PoseidonHashChip;
-use poseidon::spec::Spec;
 
 use super::{LIMB_COUNT, LIMB_WIDTH};
 
 #[derive(Clone)]
-pub struct PoseidonEncryptionCircuit<F, const T: usize, const RATE: usize>
+pub struct EncryptionCircuit<F, const T: usize, const RATE: usize>
 where
     F: PrimeField + FromUniformBytes<64>,
 {
-    // Poseidon Enc
+    // Enc
     pub spec: Spec<F, T, RATE>,
     pub data: [F; MESSAGE_CAPACITY],
 
@@ -29,7 +29,7 @@ where
     pub k_limbs: Vec<F>,
 }
 
-impl<F, const T: usize, const RATE: usize> PoseidonEncryptionCircuit<F, T, RATE>
+impl<F, const T: usize, const RATE: usize> EncryptionCircuit<F, T, RATE>
 where
     F: PrimeField + FromUniformBytes<64>,
 {
@@ -45,11 +45,11 @@ where
     }
 }
 
-impl<F, const T: usize, const RATE: usize> Circuit<F> for PoseidonEncryptionCircuit<F, T, RATE>
+impl<F, const T: usize, const RATE: usize> Circuit<F> for EncryptionCircuit<F, T, RATE>
 where
     F: PrimeField + FromUniformBytes<64>,
 {
-    type Config = PoseidonEncryptionCircuitConfig;
+    type Config = EncryptionCircuitConfig;
     type FloorPlanner = SimpleFloorPlanner;
 
     fn without_witnesses(&self) -> Self {
@@ -63,7 +63,7 @@ where
         let encryption_config = main_gate_config.clone();
         let hash_config = main_gate_config.clone();
 
-        PoseidonEncryptionCircuitConfig {
+        EncryptionCircuitConfig {
             encryption_config,
             hash_config,
         }
@@ -79,12 +79,9 @@ where
             |region| {
                 let offset = 0;
                 let ctx = &mut RegionCtx::new(region, offset);
-                let mut hasher = PoseidonEncryptionChip::<F, T, RATE>::new_hash(
-                    ctx,
-                    &self.spec,
-                    &config.hash_config,
-                )?;
-                let main_gate_chip = hasher.poseidon_chip.main_gate();
+                let mut hasher =
+                    EncryptionChip::<F, T, RATE>::new_hash(ctx, &self.spec, &config.hash_config)?;
+                let main_gate_chip = hasher.chip.main_gate();
 
                 let base1 = main_gate_chip.assign_constant(
                     ctx,
@@ -133,30 +130,30 @@ where
             layouter.constrain_instance(h_out[1].clone().cell(), config.hash_config.instance, 1);
 
         let cipher_text = layouter.assign_region(
-            || "poseidon region",
+            || "region",
             |region| {
                 let offset = 0;
                 let ctx = &mut RegionCtx::new(region, offset);
                 let mut pose_key = [F::ZERO; 2];
 
-                // set poseidon enc key as the ouput of rsa
+                // set enc key as the ouput of rsa
                 h_out[0].value().map(|e| *e).map(|v| pose_key[0] = v);
                 h_out[1].value().map(|e| *e).map(|v| pose_key[1] = v);
 
                 // == Encryption ciruit ==//
                 // new assigns initial_state into cells.
-                let mut enc = PoseidonEncryptionChip::<F, T, RATE>::new_enc(
+                let mut enc = EncryptionChip::<F, T, RATE>::new_enc(
                     ctx,
                     &self.spec,
                     &config.encryption_config,
                     pose_key,
                 )?;
-                let main_gate_chip = enc.poseidon_chip.main_gate();
-                main_gate_chip.assert_equal(ctx, &enc.poseidon_chip.state.0[2], &h_out[0])?;
-                main_gate_chip.assert_equal(ctx, &enc.poseidon_chip.state.0[3], &h_out[1])?;
+                let main_gate_chip = enc.chip.main_gate();
+                main_gate_chip.assert_equal(ctx, &enc.chip.state.0[2], &h_out[0])?;
+                main_gate_chip.assert_equal(ctx, &enc.chip.state.0[3], &h_out[1])?;
 
                 // permute before state data addtion
-                enc.poseidon_chip.permutation(ctx, vec![])?;
+                enc.chip.permutation(ctx, vec![])?;
 
                 // check the permuted state
                 let data = Value::known(self.data);
@@ -164,7 +161,7 @@ where
                 // set the data to be an input to the encryption
                 for e in data.as_ref().transpose_vec(self.data.len()) {
                     let e = main_gate_chip.assign_value(ctx, e.map(|v| *v))?;
-                    enc.poseidon_chip.set_inputs(&[e.clone()]);
+                    enc.chip.set_inputs(&[e.clone()]);
                 }
 
                 // add the input to the currentn state and output encrypted result
@@ -187,41 +184,34 @@ where
 }
 
 #[derive(Clone, Debug)]
-pub struct PoseidonEncryptionCircuitConfig {
-    // Poseidon Encryption
+pub struct EncryptionCircuitConfig {
+    // Encryption
     encryption_config: MainGateConfig,
     // Hash
     hash_config: MainGateConfig,
 }
 
 #[derive(Debug, Clone)]
-struct PoseidonEncryptionChip<
-    F: PrimeField + ff::FromUniformBytes<64>,
-    const T: usize,
-    const RATE: usize,
-> {
-    _encryption_chip: PoseidonChip<F, T, RATE, FULL_ROUND, PARTIAL_ROUND>,
-    _hash_chip: PoseidonHashChip<F, T, RATE, FULL_ROUND, PARTIAL_ROUND>,
-    _encryption_config: PoseidonEncryptionCircuitConfig,
+struct EncryptionChip<F: PrimeField + ff::FromUniformBytes<64>, const T: usize, const RATE: usize> {
+    _encryption_chip: Chip<F, T, RATE, FULL_ROUND, PARTIAL_ROUND>,
+    _hash_chip: HashChip<F, T, RATE, FULL_ROUND, PARTIAL_ROUND>,
+    _encryption_config: EncryptionCircuitConfig,
     _f: PhantomData<F>,
 }
 
 impl<F: PrimeField + ff::FromUniformBytes<64>, const T: usize, const RATE: usize>
-    PoseidonEncryptionChip<F, T, RATE>
+    EncryptionChip<F, T, RATE>
 {
     pub fn new_hash(
         ctx: &mut RegionCtx<'_, F>,
         spec: &Spec<F, T, RATE>,
         main_gate_config: &MainGateConfig,
-    ) -> Result<PoseidonHashChip<F, T, RATE, FULL_ROUND, PARTIAL_ROUND>, Error> {
-        let pos_hash_chip = PoseidonChip::<F, T, RATE, FULL_ROUND, PARTIAL_ROUND>::new_hash(
-            ctx,
-            spec,
-            main_gate_config,
-        )?;
+    ) -> Result<HashChip<F, T, RATE, FULL_ROUND, PARTIAL_ROUND>, Error> {
+        let pos_hash_chip =
+            Chip::<F, T, RATE, FULL_ROUND, PARTIAL_ROUND>::new_hash(ctx, spec, main_gate_config)?;
 
-        Ok(PoseidonHashChip {
-            poseidon_chip: pos_hash_chip,
+        Ok(HashChip {
+            chip: pos_hash_chip,
         })
     }
 
@@ -230,18 +220,17 @@ impl<F: PrimeField + ff::FromUniformBytes<64>, const T: usize, const RATE: usize
         spec: &Spec<F, T, RATE>,
         main_gate_config: &MainGateConfig,
         sk: [F; 2],
-    ) -> Result<PoseidonEncChip<F, T, RATE, FULL_ROUND, PARTIAL_ROUND>, Error> {
-        let encryption_chip =
-            PoseidonChip::<F, T, RATE, FULL_ROUND, PARTIAL_ROUND>::new_encryption_de(
-                ctx,
-                spec,
-                main_gate_config,
-                &sk[0],
-                &sk[1],
-            )?;
+    ) -> Result<EncChip<F, T, RATE, FULL_ROUND, PARTIAL_ROUND>, Error> {
+        let encryption_chip = Chip::<F, T, RATE, FULL_ROUND, PARTIAL_ROUND>::new_encryption_de(
+            ctx,
+            spec,
+            main_gate_config,
+            &sk[0],
+            &sk[1],
+        )?;
 
-        Ok(PoseidonEncChip {
-            poseidon_chip: encryption_chip,
+        Ok(EncChip {
+            chip: encryption_chip,
             pose_key0: sk[0],
             pose_key1: sk[1],
         })

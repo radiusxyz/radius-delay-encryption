@@ -1,6 +1,11 @@
 use std::fs::File;
 use std::io::BufReader;
 
+use encryptor::encryption::cipher::{
+    data_to_slices, encrypted_str_to_fr_slices, str_slices_to_fr_slices,
+};
+use encryptor::hash::types::HashValue;
+use encryptor::spec::Spec;
 use halo2_proofs::halo2curves::bn256::{Bn256, Fr, G1Affine};
 use halo2_proofs::plonk::{
     create_proof, keygen_pk, keygen_vk, verify_proof, ProvingKey, VerifyingKey,
@@ -16,25 +21,20 @@ use halo2_proofs::transcript::{
 use halo2_proofs::SerdeFormat;
 use maingate::decompose_big;
 use num_bigint::BigUint;
-use poseidon::encryption::cipher::{
-    data_to_slices, encrypted_str_to_fr_slices, str_slices_to_fr_slices,
-};
-use poseidon::hash::types::PoseidonHashValue;
-use poseidon::spec::Spec;
 use rand::rngs::OsRng;
 use serde::{Deserialize, Serialize};
 
-use super::poseidon_encryption_circuit::PoseidonEncryptionCircuit;
+use super::encryption_circuit::EncryptionCircuit;
 use super::{LIMB_COUNT, LIMB_WIDTH, RATE, T};
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
-pub struct PoseidonEncryptionPublicInput {
+pub struct EncryptionPublicInput {
     pub encrypted_data: String,
-    pub k_hash_value: PoseidonHashValue,
+    pub k_hash_value: HashValue,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
-pub struct PoseidonEncryptionSecretInput {
+pub struct EncryptionSecretInput {
     pub data: String,
     pub k: BigUint,
 }
@@ -63,7 +63,7 @@ pub fn export_zkp_param(file_path: &str, param: ParamsKZG<Bn256>) {
 pub fn import_proving_key(file_path: &str) -> ProvingKey<G1Affine> {
     let proving_key_file = File::open(file_path).expect("Failed to load proving_key_file");
 
-    ProvingKey::<G1Affine>::read::<BufReader<File>, PoseidonEncryptionCircuit<Fr, T, RATE>>(
+    ProvingKey::<G1Affine>::read::<BufReader<File>, EncryptionCircuit<Fr, T, RATE>>(
         &mut BufReader::new(proving_key_file),
         SerdeFormat::RawBytes,
     )
@@ -73,7 +73,7 @@ pub fn import_proving_key(file_path: &str) -> ProvingKey<G1Affine> {
 pub fn import_verifying_key(file_path: &str) -> VerifyingKey<G1Affine> {
     let verifying_key_file = File::open(file_path).expect("Failed to load verifying_file_path");
 
-    VerifyingKey::<G1Affine>::read::<BufReader<File>, PoseidonEncryptionCircuit<Fr, T, RATE>>(
+    VerifyingKey::<G1Affine>::read::<BufReader<File>, EncryptionCircuit<Fr, T, RATE>>(
         &mut BufReader::new(verifying_key_file),
         SerdeFormat::RawBytes,
     )
@@ -95,7 +95,7 @@ pub fn setup(
 ) {
     let param = ParamsKZG::<Bn256>::setup(k, OsRng);
 
-    let circuit = PoseidonEncryptionCircuit::<Fr, T, RATE>::create_empty_circuit();
+    let circuit = EncryptionCircuit::<Fr, T, RATE>::create_empty_circuit();
 
     let verifying_key = keygen_vk(&param, &circuit.clone()).expect("keygen_vk failed");
 
@@ -108,31 +108,23 @@ pub fn setup(
 pub fn prove(
     param: &ParamsKZG<Bn256>,
     proving_key: &ProvingKey<G1Affine>,
-    poseidon_encryption_public_input: &PoseidonEncryptionPublicInput,
-    poseidon_encryption_secret_input: &PoseidonEncryptionSecretInput,
+    encryption_public_input: &EncryptionPublicInput,
+    encryption_secret_input: &EncryptionSecretInput,
 ) -> Vec<u8> {
     let mut public_inputs = vec![];
 
-    public_inputs
-        .push(Fr::from_bytes(poseidon_encryption_public_input.k_hash_value.get(0)).unwrap());
-    public_inputs
-        .push(Fr::from_bytes(poseidon_encryption_public_input.k_hash_value.get(1)).unwrap());
+    public_inputs.push(Fr::from_bytes(encryption_public_input.k_hash_value.get(0)).unwrap());
+    public_inputs.push(Fr::from_bytes(encryption_public_input.k_hash_value.get(1)).unwrap());
 
-    let data_slices =
-        str_slices_to_fr_slices(data_to_slices(&poseidon_encryption_secret_input.data));
-    let encrypted_data_slices =
-        encrypted_str_to_fr_slices(&poseidon_encryption_public_input.encrypted_data);
+    let data_slices = str_slices_to_fr_slices(data_to_slices(&encryption_secret_input.data));
+    let encrypted_data_slices = encrypted_str_to_fr_slices(&encryption_public_input.encrypted_data);
 
     public_inputs.extend_from_slice(&encrypted_data_slices);
 
-    let k_limbs = decompose_big::<Fr>(
-        poseidon_encryption_secret_input.k.clone(),
-        LIMB_COUNT,
-        LIMB_WIDTH,
-    );
+    let k_limbs = decompose_big::<Fr>(encryption_secret_input.k.clone(), LIMB_COUNT, LIMB_WIDTH);
 
     let spec = Spec::<Fr, 5, 4>::new(8, 57);
-    let circuit = PoseidonEncryptionCircuit::<Fr, 5, 4> {
+    let circuit = EncryptionCircuit::<Fr, 5, 4> {
         spec,
         data: data_slices,
         k_limbs,
@@ -156,18 +148,15 @@ pub fn prove(
 pub fn verify(
     param: &ParamsKZG<Bn256>,
     verifying_key: &VerifyingKey<G1Affine>,
-    poseidon_encryption_public_input: &PoseidonEncryptionPublicInput,
+    encryption_public_input: &EncryptionPublicInput,
     proof: &[u8],
 ) -> bool {
     let mut public_inputs = vec![];
 
-    public_inputs
-        .push(Fr::from_bytes(poseidon_encryption_public_input.k_hash_value.get(0)).unwrap());
-    public_inputs
-        .push(Fr::from_bytes(poseidon_encryption_public_input.k_hash_value.get(1)).unwrap());
+    public_inputs.push(Fr::from_bytes(encryption_public_input.k_hash_value.get(0)).unwrap());
+    public_inputs.push(Fr::from_bytes(encryption_public_input.k_hash_value.get(1)).unwrap());
 
-    let encrypted_data_slices =
-        encrypted_str_to_fr_slices(&poseidon_encryption_public_input.encrypted_data);
+    let encrypted_data_slices = encrypted_str_to_fr_slices(&encryption_public_input.encrypted_data);
 
     public_inputs.extend_from_slice(&encrypted_data_slices);
 
@@ -193,9 +182,9 @@ pub fn load() -> (
     VerifyingKey<G1Affine>,
 ) {
     let data_dir = "./public/data/";
-    let param_file_path = data_dir.to_owned() + "poseidon_encryption_zkp_param.data";
-    let proving_key_file_path = data_dir.to_owned() + "poseidon_encryption_proving_key.data";
-    let verifying_key_file_path = data_dir.to_owned() + "poseidon_encryption_verifying_key.data";
+    let param_file_path = data_dir.to_owned() + "encryption_zkp_param.data";
+    let proving_key_file_path = data_dir.to_owned() + "encryption_proving_key.data";
+    let verifying_key_file_path = data_dir.to_owned() + "encryption_verifying_key.data";
 
     let param = import_zkp_param(&param_file_path);
     let proving_key = import_proving_key(&proving_key_file_path);
@@ -208,18 +197,22 @@ pub fn load() -> (
 mod tests {
     use std::str::FromStr;
 
-    use poseidon::hash;
+    use encryptor::hash;
+    use maingate::decompose_big;
 
     use super::*;
-    use crate::encryption::poseidon_encryption::encrypt;
+    use crate::encryption::encryption::encrypt;
+
+    #[derive(Clone, Copy, PartialEq, Eq, Hash)]
+    #[cfg_attr(feature = "derive_serde", derive(Serialize, Deserialize))]
+    pub struct StompesiFr(pub(crate) [u64; 4]);
 
     #[test]
     pub fn setup_and_export_test() {
         let data_dir = "./public/data/";
-        let param_file_path = data_dir.to_owned() + "poseidon_encryption_zkp_param.data";
-        let proving_key_file_path = data_dir.to_owned() + "poseidon_encryption_proving_key.data";
-        let verifying_key_file_path =
-            data_dir.to_owned() + "poseidon_encryption_verifying_key.data";
+        let param_file_path = data_dir.to_owned() + "encryption_zkp_param.data";
+        let proving_key_file_path = data_dir.to_owned() + "encryption_proving_key.data";
+        let verifying_key_file_path = data_dir.to_owned() + "encryption_verifying_key.data";
 
         let (param, verifying_key, proving_key) = setup(13);
 
@@ -237,14 +230,14 @@ mod tests {
         let data = "stompesi";
 
         let k = BigUint::from_str("1").unwrap();
-        let k_hash_value: PoseidonHashValue = hash::hash(k.clone());
+        let k_hash_value: HashValue = hash::hash(k.clone());
 
         let encrypted_data = encrypt(data, &k_hash_value);
-        let poseidon_encryption_public_input = PoseidonEncryptionPublicInput {
+        let encryption_public_input = EncryptionPublicInput {
             encrypted_data,
             k_hash_value: k_hash_value.clone(),
         };
-        let poseidon_encryption_secret_input = PoseidonEncryptionSecretInput {
+        let encryption_secret_input = EncryptionSecretInput {
             data: data.to_string(),
             k,
         };
@@ -253,26 +246,21 @@ mod tests {
         let proof = prove(
             &param,
             &proving_key,
-            &poseidon_encryption_public_input,
-            &poseidon_encryption_secret_input,
+            &encryption_public_input,
+            &encryption_secret_input,
         );
         println!("Proved!");
 
         // It is invalid
         let data = "Changed data";
         let encrypted_data = encrypt(data, &k_hash_value);
-        let poseidon_encryption_public_input = PoseidonEncryptionPublicInput {
+        let encryption_public_input: EncryptionPublicInput = EncryptionPublicInput {
             encrypted_data,
             k_hash_value,
         };
 
         println!("Verifying...");
-        let is_valid = verify(
-            &param,
-            &verifying_key,
-            &poseidon_encryption_public_input,
-            &proof,
-        );
+        let is_valid = verify(&param, &verifying_key, &encryption_public_input, &proof);
         println!("Verified!");
 
         println!("is_valid : {:?}", is_valid);
@@ -287,15 +275,21 @@ mod tests {
         let data = "stompesi";
 
         let k = BigUint::from_str("1").unwrap();
-        let k_hash_value: PoseidonHashValue = hash::hash(k.clone());
+        let k_hash_value: HashValue = hash::hash(k.clone());
 
-        let encrypted_data = encrypt(data, &k_hash_value);
+        // TODO: Chanyang
+        // let encryption_key: HashValue = k_hash_value.clone();
+        let encryption_key = decompose_big::<Fr>(k.clone(), LIMB_COUNT, LIMB_WIDTH);
+        let encryption_key =
+            HashValue::new([encryption_key[0].to_bytes(), encryption_key[1].to_bytes()]);
 
-        let poseidon_encryption_public_input = PoseidonEncryptionPublicInput {
+        let encrypted_data = encrypt(data, &encryption_key);
+
+        let encryption_public_input = EncryptionPublicInput {
             encrypted_data,
             k_hash_value,
         };
-        let poseidon_encryption_secret_input = PoseidonEncryptionSecretInput {
+        let encryption_secret_input = EncryptionSecretInput {
             data: data.to_string(),
             k,
         };
@@ -304,18 +298,13 @@ mod tests {
         let proof = prove(
             &param,
             &proving_key,
-            &poseidon_encryption_public_input,
-            &poseidon_encryption_secret_input,
+            &encryption_public_input,
+            &encryption_secret_input,
         );
         println!("Proved!");
 
         println!("Verifying...");
-        let is_valid = verify(
-            &param,
-            &verifying_key,
-            &poseidon_encryption_public_input,
-            &proof,
-        );
+        let is_valid = verify(&param, &verifying_key, &encryption_public_input, &proof);
         println!("Verified!");
 
         println!("is_valid : {:?}", is_valid);

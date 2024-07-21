@@ -1,15 +1,15 @@
 use ff::PrimeField;
 
 #[derive(Copy, Clone, Debug, Default)]
-pub struct PoseidonEncryptionKey<F: PrimeField> {
+pub struct EncryptionKey<F: PrimeField> {
     pub key0: F,
     pub key1: F,
 }
 
-impl<F: PrimeField> PoseidonEncryptionKey<F> {
+impl<F: PrimeField> EncryptionKey<F> {
     /// The default impl for key
     pub const fn init() -> Self {
-        PoseidonEncryptionKey {
+        EncryptionKey {
             key0: F::ZERO,
             key1: F::ZERO,
         }

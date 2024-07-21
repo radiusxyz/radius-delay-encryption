@@ -2,11 +2,11 @@ use ff::{FromUniformBytes, PrimeField};
 use halo2wrong::halo2::plonk::Error;
 use maingate::{AssignedValue, MainGateConfig, RegionCtx};
 
-use crate::chip::PoseidonChip;
+use crate::chip::Chip;
 use crate::spec::Spec;
 
 #[derive(Debug, Clone)]
-pub struct PoseidonHashChip<
+pub struct HashChip<
     F: PrimeField + FromUniformBytes<64>,
     // const NUMBER_OF_LIMBS: usize,
     // const BIT_LEN: usize,
@@ -15,7 +15,7 @@ pub struct PoseidonHashChip<
     const R_F: usize,
     const R_P: usize,
 > {
-    pub poseidon_chip: PoseidonChip<F, T, RATE, R_F, R_P>,
+    pub chip: Chip<F, T, RATE, R_F, R_P>,
 }
 
 impl<
@@ -26,7 +26,7 @@ impl<
         const RATE: usize,
         const R_F: usize,
         const R_P: usize,
-    > PoseidonHashChip<F, T, RATE, R_F, R_P>
+    > HashChip<F, T, RATE, R_F, R_P>
 {
     // Constructs new hasher chip with assigned initial state
     pub fn new(
@@ -35,18 +35,17 @@ impl<
         spec: &Spec<F, T, RATE>,
         main_gate_config: &MainGateConfig,
     ) -> Result<Self, Error> {
-        let pos_hash_chip =
-            PoseidonChip::<F, T, RATE, R_F, R_P>::new_hash(ctx, spec, main_gate_config)?;
+        let pos_hash_chip = Chip::<F, T, RATE, R_F, R_P>::new_hash(ctx, spec, main_gate_config)?;
 
         Ok(Self {
-            poseidon_chip: pos_hash_chip,
+            chip: pos_hash_chip,
         })
     }
 
     /// Appends field elements to the absorbation line. It won't perform
     /// permutation here
     pub fn update(&mut self, elements: &[AssignedValue<F>]) {
-        self.poseidon_chip.absorbing.extend_from_slice(elements);
+        self.chip.absorbing.extend_from_slice(elements);
     }
 }
 
@@ -58,30 +57,30 @@ impl<
         const R_P: usize,
         const T: usize,
         const RATE: usize,
-    > PoseidonHashChip<F, T, RATE, R_F, R_P>
+    > HashChip<F, T, RATE, R_F, R_P>
 {
     pub fn hash(
         &mut self,
         ctx: &mut RegionCtx<'_, F>,
     ) -> Result<[halo2_proofs::circuit::AssignedCell<F, F>; T], Error> {
         // Get elements to be hashed
-        let input_elements = self.poseidon_chip.absorbing.clone();
+        let input_elements = self.chip.absorbing.clone();
         // Flush the input que
-        self.poseidon_chip.absorbing.clear();
+        self.chip.absorbing.clear();
 
         let mut padding_offset = 0;
         // Apply permutation to `RATE`Ï sized chunks
         for chunk in input_elements.chunks(RATE) {
             padding_offset = RATE - chunk.len();
-            self.poseidon_chip.perm_hash(ctx, chunk.to_vec())?;
+            self.chip.perm_hash(ctx, chunk.to_vec())?;
         }
 
         // If last chunking is full apply another permutation for collution resistance
         if padding_offset == 0 {
-            self.poseidon_chip.perm_hash(ctx, vec![])?;
+            self.chip.perm_hash(ctx, vec![])?;
         }
 
-        Ok(self.poseidon_chip.state.0.clone())
+        Ok(self.chip.state.0.clone())
     }
 }
 
@@ -94,19 +93,19 @@ mod tests {
     use maingate::{mock_prover_verify, MainGate, MainGateConfig, MainGateInstructions, RegionCtx};
 
     use crate::chip::{FULL_ROUND, PARTIAL_ROUND};
-    use crate::hash::chip::PoseidonHashChip;
-    use crate::poseidon::Poseidon;
+    use crate::encryptor::Encryptor;
+    use crate::hash::chip::HashChip;
     use crate::spec::Spec;
 
     // const NUMBER_OF_LIMBS: usize = 4;
     // const BIT_LEN_LIMB: usize = 68;
 
     #[derive(Clone)]
-    pub(crate) struct PoseidonHashConfig {
+    pub(crate) struct HashConfig {
         main_gate_config: MainGateConfig,
     }
 
-    pub(crate) struct PoseidonHashCircuit<
+    pub(crate) struct HashCircuit<
         F: PrimeField + FromUniformBytes<64>,
         const T: usize,
         const RATE: usize,
@@ -118,9 +117,9 @@ mod tests {
     }
 
     impl<F: PrimeField + FromUniformBytes<64>, const T: usize, const RATE: usize> Circuit<F>
-        for PoseidonHashCircuit<F, T, RATE>
+        for HashCircuit<F, T, RATE>
     {
-        type Config = PoseidonHashConfig;
+        type Config = HashConfig;
         type FloorPlanner = SimpleFloorPlanner;
         #[cfg(feature = "circuit-params")]
         type Params = ();
@@ -132,7 +131,7 @@ mod tests {
         fn configure(meta: &mut ConstraintSystem<F>) -> Self::Config {
             let main_gate_config = MainGate::<F>::configure(meta);
 
-            PoseidonHashConfig { main_gate_config }
+            HashConfig { main_gate_config }
         }
 
         fn synthesize(
@@ -155,14 +154,13 @@ mod tests {
                             .push(main_gate.assign_value(ctx, Value::known(self.expected[i]))?);
                     }
 
-                    let mut pos_hash_chip =
-                        PoseidonHashChip::<F, T, RATE, FULL_ROUND, PARTIAL_ROUND>::new(
-                            ctx,
-                            &self.spec,
-                            &config.main_gate_config,
-                        )?;
+                    let mut pos_hash_chip = HashChip::<F, T, RATE, FULL_ROUND, PARTIAL_ROUND>::new(
+                        ctx,
+                        &self.spec,
+                        &config.main_gate_config,
+                    )?;
 
-                    // println!("state0: {:?}\n", pos_hash_chip.poseidon_chip.state.0);
+                    // println!("state0: {:?}\n", pos_hash_chip.chip.state.0);
 
                     for e in self.inputs.as_ref().transpose_vec(self.n) {
                         let e = main_gate.assign_value(ctx, e.map(|e| *e))?;
@@ -170,12 +168,12 @@ mod tests {
                         pos_hash_chip.update(&[e.clone()]);
                     }
 
-                    // println!("state1: {:?}\n", pos_hash_chip.poseidon_chip.state.0);
+                    // println!("state1: {:?}\n", pos_hash_chip.chip.state.0);
 
                     let hash_output = pos_hash_chip.hash(ctx)?;
                     // let expected = main_gate.assign_value(ctx, self.expected)?;
 
-                    // println!("state2: {:?}\n", pos_hash_chip.poseidon_chip.state.0);
+                    // println!("state2: {:?}\n", pos_hash_chip.chip.state.0);
 
                     // println!("hash_output: {:?}", hash_output);
                     // println!("expected hash_output: {:?}\n", self.expected);
@@ -203,7 +201,7 @@ mod tests {
         const RATE: usize = 4;
 
         println!("{:?}", number_of_inputs);
-        let mut ref_hasher = Poseidon::<Fr, T, RATE>::new_hash(8, 57);
+        let mut ref_hasher = Encryptor::<Fr, T, RATE>::new_hash(8, 57);
         let spec = Spec::<Fr, T, RATE>::new(8, 57);
 
         let inputs: Vec<Fr> = (0..number_of_inputs)
@@ -219,7 +217,7 @@ mod tests {
 
         println!("ref_hahser state1: {:?}", ref_hasher.state.words().clone());
 
-        let circuit: PoseidonHashCircuit<Fr, T, RATE> = PoseidonHashCircuit {
+        let circuit: HashCircuit<Fr, T, RATE> = HashCircuit {
             spec: spec.clone(),
             n: number_of_inputs,
             inputs: Value::known(inputs),

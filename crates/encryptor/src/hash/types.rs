@@ -3,11 +3,11 @@ use serde::{Deserialize, Serialize};
 type FieldElement = [u8; 32];
 
 #[derive(Debug, Clone, Serialize, Deserialize, Default)]
-pub struct PoseidonHashValue([FieldElement; 2]);
+pub struct HashValue([FieldElement; 2]);
 
-impl PoseidonHashValue {
+impl HashValue {
     pub fn new(key: [FieldElement; 2]) -> Self {
-        PoseidonHashValue(key)
+        HashValue(key)
     }
 
     pub fn get(&self, index: usize) -> &[u8; 32] {

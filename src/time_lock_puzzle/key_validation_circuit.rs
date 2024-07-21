@@ -1,9 +1,12 @@
 use std::marker::PhantomData;
 
 use big_integer::{BigIntConfig, BigIntInstructions, UnassignedInteger};
+use encryptor::chip::{Chip, FULL_ROUND, PARTIAL_ROUND};
+use encryptor::hash::chip::HashChip;
+use encryptor::spec::Spec;
 use ff::{FromUniformBytes, PrimeField};
 use halo2_proofs::circuit::floor_planner::V1;
-use halo2_proofs::circuit::{AssignedCell, Chip};
+use halo2_proofs::circuit::{AssignedCell, Chip as HaloChip};
 use halo2_proofs::plonk::{Circuit, ConstraintSystem, Error};
 use halo2wrong::RegionCtx;
 use maingate::{
@@ -11,9 +14,6 @@ use maingate::{
     RangeInstructions,
 };
 use num_bigint::BigUint;
-use poseidon::chip::{PoseidonChip, FULL_ROUND, PARTIAL_ROUND};
-use poseidon::hash::chip::PoseidonHashChip;
-use poseidon::spec::Spec;
 use rsa::{RSAChip, RSAConfig};
 
 use super::{BITS_LEN, EXP_LIMB_BITS, LIMB_COUNT, LIMB_WIDTH};
@@ -36,7 +36,7 @@ where
     pub n: BigUint, // parameter
     pub k: BigUint, // secret_input
 
-    // Poseidon Hash (for library)
+    // Hash (for library)
     pub spec: Spec<F, T, RATE>,
 }
 
@@ -201,7 +201,7 @@ struct KeyValidationChip<
     const RATE: usize,
 > {
     _rsa_chip: RSAChip<F>,
-    _hash_chip: PoseidonHashChip<F, T, RATE, FULL_ROUND, PARTIAL_ROUND>,
+    _hash_chip: HashChip<F, T, RATE, FULL_ROUND, PARTIAL_ROUND>,
     _delay_hash_config: KeyValidationCircuitConfig,
     _f: PhantomData<F>,
 }
@@ -222,15 +222,10 @@ impl<F: PrimeField + ff::FromUniformBytes<64>, const T: usize, const RATE: usize
         ctx: &mut RegionCtx<'_, F>,
         spec: &Spec<F, T, RATE>,
         main_gate_config: &MainGateConfig,
-    ) -> Result<PoseidonHashChip<F, T, RATE, FULL_ROUND, PARTIAL_ROUND>, Error> {
-        let pos_hash_chip = PoseidonChip::<F, T, RATE, FULL_ROUND, PARTIAL_ROUND>::new_hash(
-            ctx,
-            spec,
-            main_gate_config,
-        )?;
+    ) -> Result<HashChip<F, T, RATE, FULL_ROUND, PARTIAL_ROUND>, Error> {
+        let hash_chip =
+            Chip::<F, T, RATE, FULL_ROUND, PARTIAL_ROUND>::new_hash(ctx, spec, main_gate_config)?;
 
-        Ok(PoseidonHashChip {
-            poseidon_chip: pos_hash_chip,
-        })
+        Ok(HashChip { chip: hash_chip })
     }
 }

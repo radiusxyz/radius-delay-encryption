@@ -1,10 +1,10 @@
+use encryptor::encryption::cipher::{data_to_slices, encrypted_str_to_fr_slices, Cipher};
+use encryptor::hash::types::HashValue;
 use halo2_proofs::halo2curves::bn256::{self, Fr};
 use maingate::{big_to_fe, fe_to_big};
 use num_bigint::BigUint;
-use poseidon::encryption::cipher::{data_to_slices, encrypted_str_to_fr_slices, PoseidonCipher};
-use poseidon::hash::types::PoseidonHashValue;
 
-pub fn encrypt(data: &str, encryption_key: &PoseidonHashValue) -> String {
+pub fn encrypt(data: &str, encryption_key: &HashValue) -> String {
     let data_slices = data_to_slices(data);
     let fr_slices: Vec<Fr> = data_slices
         .into_iter()
@@ -14,7 +14,7 @@ pub fn encrypt(data: &str, encryption_key: &PoseidonHashValue) -> String {
         })
         .collect();
 
-    let mut cipher = PoseidonCipher::<bn256::Fr, 8, 57, 5, 4>::new();
+    let mut cipher = Cipher::<bn256::Fr, 8, 57, 5, 4>::new();
 
     let encryption_key = [
         Fr::from_bytes(encryption_key.get(0)).unwrap(),
@@ -36,10 +36,10 @@ pub fn encrypt(data: &str, encryption_key: &PoseidonHashValue) -> String {
     encrypted_data_str.as_slice().join(",")
 }
 
-pub fn decrypt(encrypted_data: &str, decryption_key: &PoseidonHashValue) -> String {
+pub fn decrypt(encrypted_data: &str, decryption_key: &HashValue) -> String {
     let encrypted_data = encrypted_str_to_fr_slices(encrypted_data);
 
-    let mut cipher = PoseidonCipher::<bn256::Fr, 8, 57, 5, 4>::new();
+    let mut cipher = Cipher::<bn256::Fr, 8, 57, 5, 4>::new();
     let decryption_key = [
         Fr::from_bytes(decryption_key.get(0)).unwrap(),
         Fr::from_bytes(decryption_key.get(1)).unwrap(),
@@ -66,12 +66,13 @@ pub fn decrypt(encrypted_data: &str, decryption_key: &PoseidonHashValue) -> Stri
 mod tests {
     use ff::Field;
     use halo2_proofs::halo2curves::bn256::Fr;
-    use poseidon::hash::types::PoseidonHashValue;
+
+    use crate::encryption::encryption::HashValue;
 
     #[test]
     fn encrypt_end_decrypt_test() {
         let data = "123";
-        let hash_value = PoseidonHashValue::new([Fr::ONE.into(); 2]);
+        let hash_value = HashValue::new([Fr::ONE.into(); 2]);
 
         let encrypted_data = super::encrypt(data, &hash_value);
         let decrypted_data = super::decrypt(&encrypted_data, &hash_value);
