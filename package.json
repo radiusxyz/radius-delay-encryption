@@ -1,5 +1,35 @@
 {
+  "name": "pvde-js",
+  "version": "1.0.0",
+  "description": "PVDE wasm functions in JavaScript",
+  "main": "dist/index.js",
+  "scripts": {
+    "build": "webpack --mode production",
+    "test": "jest"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/gylman/pvde-js.git"
+  },
+  "keywords": [
+    "library",
+    "javascript",
+    "pvde"
+  ],
+  "author": "gylman",
+  "license": "MIT",
+  "devDependencies": {
+    "webpack": "^5.0.0",
+    "babel-loader": "^8.0.0",
+    "babel-core": "^7.0.0",
+    "babel-preset-env": "^1.0.0",
+    "jest": "^26.0.0"
+  },
   "dependencies": {
+    "@radiusxyz/wasm-client": "0.0.1",
     "node-fetch": "^3.3.2"
+  },
+  "peerDependencies": {
+    "react": "^17.0.0"
   }
 }
