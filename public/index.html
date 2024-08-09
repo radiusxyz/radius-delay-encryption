@@ -1,171 +1,186 @@
 <!DOCTYPE html>
 <html lang="en-US">
+  <head>
+    <meta charset="utf-8" />
+    <title>PVDE in wasm</title>
+  </head>
 
-<head>
-  <meta charset="utf-8" />
-  <title>PVDE in wasm</title>
-</head>
+  <body>
+    <script type="module">
+      import init, {
+        generate_time_lock_puzzle_param,
+        generate_time_lock_puzzle,
+        prove_time_lock_puzzle,
+        verify_time_lock_puzzle_proof,
+        generate_symmetric_key,
+        encrypt,
+        solve_time_lock_puzzle,
+        decrypt,
+        prove_encryption,
+        verify_encryption_proof,
+      } from "./pkg/pvde.js";
 
-<body>
-  <script type="module">
-    import init, {
-      generate_time_lock_puzzle_param,
-      generate_time_lock_puzzle,
-      prove_time_lock_puzzle,
-      verify_time_lock_puzzle_proof,
-      generate_symmetric_key,
-      encrypt,
-      solve_time_lock_puzzle,
-      decrypt,
-      prove_encryption,
-      verify_encryption_proof,
-    } from "./pkg/pvde.js";
+      await init();
 
-    await init();
-
-    function uint8ArrayToHex(uint8Array) {
-      return Array.from(uint8Array, (byte) =>
-        byte.toString(16).padStart(2, "0")
-      ).join("");
-    }
-
-    async function readStream(res) {
-      const bytes = await res.arrayBuffer();
-      const uint8bytes = new Uint8Array(bytes);
-      // const string = uint8ArrayToHex(uint8bytes);
-      return uint8bytes;
-    }
-
-    // Load time-lock puzzle zkp param and keys
-    // Get time-lock puzzle zkp param
-    let time_lock_puzzle_zkp_param = await fetch("./data/time_lock_puzzle_zkp_param.data", {
-      method: "GET",
-    }).then((res) => readStream(res));
-
-    // Get time-lock puzzle proving_key
-    let time_lock_puzzle_zkp_proving_key = await fetch("./data/time_lock_puzzle_zkp_proving_key.data", {
-      method: "GET",
-    }).then((res) => readStream(res));
-
-    // Get time-lock puzzle verifying key
-    let time_lock_puzzle_zkp_verifying_key = await fetch(
-      "./data/time_lock_puzzle_zkp_verifying_key.data",
-      {
-        method: "GET",
+      function uint8ArrayToHex(uint8Array) {
+        return Array.from(uint8Array, (byte) =>
+          byte.toString(16).padStart(2, "0")
+        ).join("");
       }
-    ).then((res) => readStream(res));
 
-    // 1. Generate time-lock puzzle param
-    const time_lock_puzzle_param = await generate_time_lock_puzzle_param(2048);
-
-    // 2. Generate time-lock puzzle
-    const time_lock_puzzle = await generate_time_lock_puzzle(time_lock_puzzle_param);
-
-    const [time_lock_puzzle_secret_input, time_lock_puzzle_public_input] = time_lock_puzzle;
-
-    console.log(
-      "time_lock_puzzle_param: ",
-      time_lock_puzzle_param,
-      "time_lock_puzzle_secret_input: ",
-      time_lock_puzzle_secret_input,
-      "time_lock_puzzle_public_input: ",
-      time_lock_puzzle_public_input
-    );
-
-    // 3. Generate zk-proof for the validity of time-lock puzzle
-    const time_lock_puzzle_proof = prove_time_lock_puzzle(
-      time_lock_puzzle_zkp_param,
-      time_lock_puzzle_zkp_proving_key,
-      time_lock_puzzle_public_input,
-      time_lock_puzzle_secret_input, // time-lock puzzle secret input
-      time_lock_puzzle_param
-    );
-
-    console.log("proof: ", time_lock_puzzle_proof);
-
-    // 4. Verify time-lock puzzle proof
-    const is_time_lock_puzzle_verified = verify_time_lock_puzzle_proof(
-      time_lock_puzzle_zkp_param,
-      time_lock_puzzle_zkp_verifying_key,
-      time_lock_puzzle_public_input,
-      time_lock_puzzle_param,
-      time_lock_puzzle_proof
-    );
-
-    console.log("proof verified: ", is_time_lock_puzzle_verified);
-
-    // Load encryption zkp param and keys
-    // Get encryption zkp param
-    let encryption_zkp_param = await fetch(
-      "./data/encryption_zkp_param.data",
-      {
-        method: "GET",
+      async function readStream(res) {
+        const bytes = await res.arrayBuffer();
+        const uint8bytes = new Uint8Array(bytes);
+        // const string = uint8ArrayToHex(uint8bytes);
+        return uint8bytes;
       }
-    ).then((res) => readStream(res));
 
-    // Get encryption proving_key
-    let encryption_proving_key = await fetch(
-      "./data/encryption_proving_key.data",
-      {
-        method: "GET",
-      }
-    ).then((res) => readStream(res));
+      // Load time-lock puzzle zkp param and keys
+      // Get time-lock puzzle zkp param
+      let time_lock_puzzle_zkp_param = await fetch(
+        "./data/time_lock_puzzle_zkp_param.data",
+        {
+          method: "GET",
+        }
+      ).then((res) => readStream(res));
 
-    // Get encryption verifying key
-    let encryption_verifying_key = await fetch(
-      "./data/encryption_verifying_key.data",
-      {
-        method: "GET",
-      }
-    ).then((res) => readStream(res));
+      // Get time-lock puzzle proving_key
+      let time_lock_puzzle_zkp_proving_key = await fetch(
+        "./data/time_lock_puzzle_zkp_proving_key.data",
+        {
+          method: "GET",
+        }
+      ).then((res) => readStream(res));
 
-    const message = "Hello World";
+      // Get time-lock puzzle verifying key
+      let time_lock_puzzle_zkp_verifying_key = await fetch(
+        "./data/time_lock_puzzle_zkp_verifying_key.data",
+        {
+          method: "GET",
+        }
+      ).then((res) => readStream(res));
 
-    // 1. Encryption
-    const encryption_key = await generate_symmetric_key(time_lock_puzzle_secret_input.k);
-    console.log("encryption_key: ", encryption_key);
-    const encrypted_message = encrypt(message, encryption_key);
-    console.log("encrypted_message: ", encrypted_message);
+      // 1. Generate time-lock puzzle param
+      const time_lock_puzzle_param = await generate_time_lock_puzzle_param(
+        2048
+      );
 
-    const encryption_public_input = {
-      encrypted_data: encrypted_message,
-      k_hash_value: time_lock_puzzle_public_input.k_hash_value,
-    }
-    const encryption_secret_input = {
-      data: message,
-      k: time_lock_puzzle_secret_input.k,
-    }
+      // 2. Generate time-lock puzzle
+      const time_lock_puzzle = await generate_time_lock_puzzle(
+        time_lock_puzzle_param
+      );
 
-    // 2. Prove encryption 
-    const encryption_proof = prove_encryption(
-      encryption_zkp_param,
-      encryption_proving_key,
-      encryption_public_input,
-      encryption_secret_input
-    );
+      const [time_lock_puzzle_secret_input, time_lock_puzzle_public_input] =
+        time_lock_puzzle;
 
-    // 3. Verify encryption proof
-    const is_encryption_proof_verified = verify_encryption_proof(
-      encryption_zkp_param,
-      encryption_verifying_key,
-      encryption_public_input,
-      encryption_proof
-    );
+      console.log("time_lock_puzzle_param: ", time_lock_puzzle_param);
+      console.log(
+        "time_lock_puzzle_secret_input: ",
+        time_lock_puzzle_secret_input
+      );
+      console.log(
+        "time_lock_puzzle_public_input: ",
+        time_lock_puzzle_public_input
+      );
 
-    console.log("is_encryption_proof_verified: ", is_encryption_proof_verified);
+      // 3. Generate zk-proof for the validity of time-lock puzzle
+      const time_lock_puzzle_proof = prove_time_lock_puzzle(
+        time_lock_puzzle_zkp_param,
+        time_lock_puzzle_zkp_proving_key,
+        time_lock_puzzle_public_input,
+        time_lock_puzzle_secret_input, // time-lock puzzle secret input
+        time_lock_puzzle_param
+      );
 
-    // 4. Get decryption key
-    const k = await solve_time_lock_puzzle(
-      time_lock_puzzle_public_input.o,
-      time_lock_puzzle_param.t,
-      time_lock_puzzle_param.n);
-    const decryption_key = await generate_symmetric_key(k);
+      console.log("proof: ", time_lock_puzzle_proof);
 
-    // 5. Decryption
-    const decrypted_message = decrypt(encrypted_message, decryption_key);
-    console.log("decrypted_message: ", decrypted_message);
+      // 4. Verify time-lock puzzle proof
+      const is_time_lock_puzzle_verified = verify_time_lock_puzzle_proof(
+        time_lock_puzzle_zkp_param,
+        time_lock_puzzle_zkp_verifying_key,
+        time_lock_puzzle_public_input,
+        time_lock_puzzle_param,
+        time_lock_puzzle_proof
+      );
 
-  </script>
-</body>
+      console.log("proof verified: ", is_time_lock_puzzle_verified);
 
+      // Load encryption zkp param and keys
+      // Get encryption zkp param
+      let encryption_zkp_param = await fetch(
+        "./data/encryption_zkp_param.data",
+        {
+          method: "GET",
+        }
+      ).then((res) => readStream(res));
+
+      // Get encryption proving_key
+      let encryption_proving_key = await fetch(
+        "./data/encryption_proving_key.data",
+        {
+          method: "GET",
+        }
+      ).then((res) => readStream(res));
+
+      // Get encryption verifying key
+      let encryption_verifying_key = await fetch(
+        "./data/encryption_verifying_key.data",
+        {
+          method: "GET",
+        }
+      ).then((res) => readStream(res));
+
+      const message = "Hello World";
+
+      // 1. Encryption
+      const encryption_key = await generate_symmetric_key(
+        time_lock_puzzle_secret_input.k
+      );
+      console.log("encryption_key: ", encryption_key);
+      const encrypted_message = encrypt(message, encryption_key);
+      console.log("encrypted_message: ", encrypted_message);
+
+      const encryption_public_input = {
+        encrypted_data: encrypted_message,
+        k_hash_value: time_lock_puzzle_public_input.k_hash_value,
+      };
+      const encryption_secret_input = {
+        data: message,
+        k: time_lock_puzzle_secret_input.k,
+      };
+
+      // 2. Prove encryption
+      const encryption_proof = prove_encryption(
+        encryption_zkp_param,
+        encryption_proving_key,
+        encryption_public_input,
+        encryption_secret_input
+      );
+
+      // 3. Verify encryption proof
+      const is_encryption_proof_verified = verify_encryption_proof(
+        encryption_zkp_param,
+        encryption_verifying_key,
+        encryption_public_input,
+        encryption_proof
+      );
+
+      console.log(
+        "is_encryption_proof_verified: ",
+        is_encryption_proof_verified
+      );
+
+      // 4. Get decryption key
+      const k = await solve_time_lock_puzzle(
+        time_lock_puzzle_public_input.o,
+        time_lock_puzzle_param.t,
+        time_lock_puzzle_param.n
+      );
+      const decryption_key = await generate_symmetric_key(k);
+
+      // 5. Decryption
+      const decrypted_message = decrypt(encrypted_message, decryption_key);
+      console.log("decrypted_message: ", decrypted_message);
+    </script>
+  </body>
 </html>
