@@ -1,31 +1,30 @@
 use std::io::BufReader;
 
-use encryptor::hash::hash;
-use encryptor::hash::types::HashValue;
-use halo2_proofs::halo2curves::bn256::{Bn256, Fr, G1Affine};
-use halo2_proofs::plonk::{ProvingKey, VerifyingKey};
-use halo2_proofs::poly::commitment::Params;
-use halo2_proofs::poly::kzg::commitment::ParamsKZG;
-use halo2_proofs::SerdeFormat;
 use js_sys::Uint8Array;
-use num_bigint::BigUint;
-use serde_wasm_bindgen::{self, from_value};
-use wasm_bindgen::prelude::*;
-use wasm_bindgen::JsValue;
-
-use crate::encryption::encryption::{decrypt as decryptor, encrypt as encryptor};
-use crate::encryption::encryption_circuit::EncryptionCircuit;
-use crate::encryption::encryption_zkp::{
+use pvde::encryption::encryption::{decrypt as decryptor, encrypt as encryptor};
+use pvde::encryption::encryption_circuit::EncryptionCircuit;
+use pvde::encryption::encryption_zkp::{
     prove as prove_encryption_zkp, verify as verify_encryption_zkp, EncryptionPublicInput,
     EncryptionSecretInput,
 };
-use crate::time_lock_puzzle::key_validation_circuit::KeyValidationCircuit;
-use crate::time_lock_puzzle::{
+use pvde::encryptor::hash::hash;
+use pvde::encryptor::hash::types::HashValue;
+use pvde::halo2_proofs::halo2curves::bn256::{Bn256, Fr, G1Affine};
+use pvde::halo2_proofs::plonk::{ProvingKey, VerifyingKey};
+use pvde::halo2_proofs::poly::commitment::Params;
+use pvde::halo2_proofs::poly::kzg::commitment::ParamsKZG;
+use pvde::halo2_proofs::SerdeFormat;
+use pvde::num_bigint::BigUint;
+use pvde::time_lock_puzzle::key_validation_circuit::KeyValidationCircuit;
+use pvde::time_lock_puzzle::{
     generate_time_lock_puzzle as generate_tlp,
     generate_time_lock_puzzle_param as generate_tlp_param, prove_time_lock_puzzle as prove_tlp,
     solve_time_lock_puzzle as solve_tlp, verify_time_lock_puzzle_proof as verify_tlp_proof,
     TimeLockPuzzleParam, TimeLockPuzzlePublicInput, TimeLockPuzzleSecretInput,
 };
+use serde_wasm_bindgen::{self, from_value};
+use wasm_bindgen::prelude::*;
+use wasm_bindgen::JsValue;
 
 // ================== Time-Lock Puzzle ================ //
 #[wasm_bindgen]
