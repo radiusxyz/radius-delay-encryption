@@ -7,7 +7,7 @@
 
   <body>
     <script type="module">
-      import init, {
+      import {
         fetchTimeLockPuzzleZkpParam,
         fetchTimeLockPuzzleProvingKey,
         fetchTimeLockPuzzleVerifyingKey,
@@ -23,11 +23,8 @@
         generateEncryptionProof,
         verifyEncryptionProof,
         solveTimeLockPuzzle,
-        generateSymmetricKey,
         decryptCipher,
       } from "./pvdeWasm.js";
-
-      await init();
 
       function uint8ArrayToHex(uint8Array) {
         return Array.from(uint8Array, (byte) =>
@@ -61,12 +58,8 @@
       const [timeLockPuzzleSecretInput, timeLockPuzzlePublicInput] =
         timeLockPuzzle;
 
-      console.log("timeLockPuzzleParam: ", timeLockPuzzleParam);
-      console.log("timeLockPuzzleSecretInput: ", timeLockPuzzleSecretInput);
-      console.log("timeLockPuzzlePublicInput: ", timeLockPuzzlePublicInput);
-
       // 3. Generate zk-proof for the validity of time-lock puzzle
-      const timeLockPuzzleProof = generateTimeLockPuzzleProof(
+      const timeLockPuzzleProof = await generateTimeLockPuzzleProof(
         timeLockPuzzleZkpParam,
         timeLockPuzzleZkpProvingKey,
         timeLockPuzzlePublicInput,
@@ -74,10 +67,8 @@
         timeLockPuzzleParam
       );
 
-      console.log("proof: ", timeLockPuzzleProof);
-
       // 4. Verify time-lock puzzle proof
-      const isTimeLockPuzzleVerified = verifyTimeLockPuzzleProof(
+      const isTimeLockPuzzleVerified = await verifyTimeLockPuzzleProof(
         timeLockPuzzleZkpParam,
         timeLockPuzzleZkpVerifyingKey,
         timeLockPuzzlePublicInput,
@@ -85,7 +76,10 @@
         timeLockPuzzleProof
       );
 
-      console.log("proof verified: ", isTimeLockPuzzleVerified);
+      console.log(
+        "Validity of Time-Lock Puzzle ZKP: ",
+        isTimeLockPuzzleVerified
+      );
 
       // Load encryption zkp param and keys
       // Get encryption zkp param
@@ -104,7 +98,7 @@
         timeLockPuzzleSecretInput.k
       );
       console.log("encryptionKey: ", encryptionKey);
-      const encryptedMessage = encryptMessage(message, encryptionKey);
+      const encryptedMessage = await encryptMessage(message, encryptionKey);
       console.log("encryptedMessage: ", encryptedMessage);
 
       const encryptionPublicInput = {
@@ -117,7 +111,7 @@
       };
 
       // 2. Prove encryption
-      const encryptionProof = generateEncryptionProof(
+      const encryptionProof = await generateEncryptionProof(
         encryptionZkpParam,
         encryptionProvingKey,
         encryptionPublicInput,
@@ -125,25 +119,27 @@
       );
 
       // 3. Verify encryption proof
-      const isEncryptionProofVerified = verifyEncryptionProof(
+      const isEncryptionProofVerified = await verifyEncryptionProof(
         encryptionZkpParam,
         encryptionVerifyingKey,
         encryptionPublicInput,
         encryptionProof
       );
 
-      console.log("is_encryption_proof_verified: ", isEncryptionProofVerified);
+      console.log("Validity of Encryption ZKP: ", isEncryptionProofVerified);
 
       // 4. Get decryption key
       const k = await solveTimeLockPuzzle(
-        timeLockPuzzlePublicInput.o,
-        timeLockPuzzleParam.t,
-        timeLockPuzzleParam.n
+        timeLockPuzzlePublicInput,
+        timeLockPuzzleParam
       );
       const decryptionKey = await generateSymmetricKey(k);
 
       // 5. Decryption
-      const decryptedMessage = decryptCipher(encryptedMessage, decryptionKey);
+      const decryptedMessage = decryptCipher(
+        encryptedMessage,
+        encryptionPublicInput.kHashValue
+      );
       console.log("decryptedMessage: ", decryptedMessage);
     </script>
   </body>
