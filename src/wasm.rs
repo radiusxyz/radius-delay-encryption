@@ -1,14 +1,15 @@
 use std::io::BufReader;
+use std::str::FromStr;
 
 use js_sys::Uint8Array;
 use pvde::encryption::encryption::{decrypt as decryptor, encrypt as encryptor};
 use pvde::encryption::encryption_circuit::EncryptionCircuit;
 use pvde::encryption::encryption_zkp::{
-    prove as prove_encryption_zkp, verify as verify_encryption_zkp, EncryptionPublicInput,
-    EncryptionSecretInput,
+    prove as prove_encryption_zkp, setup as encryption_zkp_setup, verify as verify_encryption_zkp,
+    EncryptionPublicInput, EncryptionSecretInput,
 };
-use pvde::encryptor::hash::hash;
 use pvde::encryptor::hash::types::HashValue;
+use pvde::encryptor::hash::{hash, hash_with_zero_padding};
 use pvde::halo2_proofs::halo2curves::bn256::{Bn256, Fr, G1Affine};
 use pvde::halo2_proofs::plonk::{ProvingKey, VerifyingKey};
 use pvde::halo2_proofs::poly::commitment::Params;
@@ -138,7 +139,7 @@ pub fn solve_time_lock_puzzle(o: JsValue, t: JsValue, n: JsValue) -> JsValue {
 pub fn generate_symmetric_key(k: JsValue) -> JsValue {
     let k = from_value::<BigUint>(k).unwrap();
 
-    let hash_value = hash(k);
+    let hash_value = hash_with_zero_padding(k);
 
     serde_wasm_bindgen::to_value(&hash_value).unwrap()
 }
@@ -224,3 +225,51 @@ pub fn decrypt(encrypted_data: &str, hash_value: JsValue) -> JsValue {
     serde_wasm_bindgen::to_value(&raw_data).unwrap()
 }
 //=============================================//
+
+#[wasm_bindgen]
+extern "C" {
+    #[wasm_bindgen(js_namespace = console)]
+    fn log(s: &str);
+}
+
+#[wasm_bindgen]
+pub fn test_all() {
+    log(&format!("Setup..."));
+    let (param, verifying_key, proving_key) = encryption_zkp_setup(13);
+    log(&format!("Setup done param: {:?}"), param);
+    log(&format!("Setup done verifying_key: {:?}"), verifying_key);
+    log(&format!("Setup done proving_key: {:?}"), proving_key);
+
+    let data = "stompesi";
+
+    let k = BigUint::from_str("1").unwrap();
+    let k_hash_value: HashValue = hash(k.clone());
+
+    let encryption_key: HashValue = hash_with_zero_padding(k.clone());
+
+    let encrypted_data = encryptor(data, &encryption_key);
+
+    let encryption_public_input = EncryptionPublicInput {
+        encrypted_data,
+        k_hash_value,
+    };
+    let encryption_secret_input = EncryptionSecretInput {
+        data: data.to_string(),
+        k,
+    };
+
+    log(&format!("Proving..."));
+    let proof = prove_encryption_zkp(
+        &param,
+        &proving_key,
+        &encryption_public_input,
+        &encryption_secret_input,
+    );
+    log(&format!("Proved!"));
+
+    log(&format!("Verifying..."));
+    let is_valid = verify_encryption_zkp(&param, &verifying_key, &encryption_public_input, &proof);
+    log(&format!("Verified!"));
+
+    log(&format!("is_valid : {:?}", is_valid));
+}
