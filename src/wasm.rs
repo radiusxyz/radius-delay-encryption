@@ -236,9 +236,9 @@ extern "C" {
 pub fn test_all() {
     log(&format!("Setup..."));
     let (param, verifying_key, proving_key) = encryption_zkp_setup(13);
-    log(&format!("Setup done param: {:?}"), param);
-    log(&format!("Setup done verifying_key: {:?}"), verifying_key);
-    log(&format!("Setup done proving_key: {:?}"), proving_key);
+    log(&format!("Setup done param: {:?}", param));
+    log(&format!("Setup done verifying_key: {:?}", verifying_key));
+    log(&format!("Setup done proving_key: {:?}", proving_key));
 
     let data = "stompesi";
 
