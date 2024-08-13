@@ -51,7 +51,7 @@
       let timeLockPuzzleZkpVerifyingKey =
         await fetchTimeLockPuzzleVerifyingKey();
 
-      await test_all();
+      // await test_all();
 
       // 1. Generate time-lock puzzle param
       const timeLockPuzzleParam = await generateTimeLockPuzzleParam(2048);
@@ -80,11 +80,6 @@
         timeLockPuzzleProof
       );
 
-      console.log(
-        "Validity of Time-Lock Puzzle ZKP: ",
-        isTimeLockPuzzleVerified
-      );
-
       // Load encryption zkp param and keys
       // Get encryption zkp param
       let encryptionZkpParam = await fetchEncryptionZkpParam();
@@ -101,12 +96,10 @@
       const encryptionKey = await generateSymmetricKey(
         timeLockPuzzleSecretInput.k
       );
-      console.log("encryptionKey: ", encryptionKey);
-      const encryptedMessage = await encryptMessage(message, encryptionKey);
-      console.log("encryptedMessage: ", encryptedMessage);
+      const cipher = await encryptMessage(message, encryptionKey);
 
       const encryptionPublicInput = {
-        encryptedData: encryptedMessage,
+        encryptedData: cipher,
         kHashValue: timeLockPuzzlePublicInput.kHashValue,
       };
       const encryptionSecretInput = {
@@ -130,8 +123,6 @@
         encryptionProof
       );
 
-      console.log("Validity of Encryption ZKP: ", isEncryptionProofVerified);
-
       // 4. Get decryption key
       const k = await solveTimeLockPuzzle(
         timeLockPuzzlePublicInput,
@@ -140,11 +131,7 @@
       const decryptionKey = await generateSymmetricKey(k);
 
       // 5. Decryption
-      const decryptedMessage = decryptCipher(
-        encryptedMessage,
-        encryptionPublicInput.kHashValue
-      );
-      console.log("decryptedMessage: ", decryptedMessage);
+      const decryptedMessage = decryptCipher(cipher, decryptionKey);
     </script>
   </body>
 </html>
