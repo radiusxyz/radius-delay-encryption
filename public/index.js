@@ -21,8 +21,6 @@ async function ensureInitialized() {
   }
 }
 
-await init();
-
 function uint8ArrayToHex(uint8Array) {
   return Array.from(uint8Array, (byte) =>
     byte.toString(16).padStart(2, "0")
