@@ -231,7 +231,7 @@ export async function generateSymmetricKey(k) {
   return await generate_symmetric_key(k);
 }
 
-export function decryptCipher(encryptedMessage, symmetricKey) {
+export function decryptCipher(cipher, symmetricKey) {
   ensureInitialized();
-  return decrypt(encryptedMessage, symmetricKey);
+  return decrypt(cipher, symmetricKey);
 }

@@ -226,50 +226,50 @@ pub fn decrypt(encrypted_data: &str, hash_value: JsValue) -> JsValue {
 }
 //=============================================//
 
-#[wasm_bindgen]
-extern "C" {
-    #[wasm_bindgen(js_namespace = console)]
-    fn log(s: &str);
-}
+// #[wasm_bindgen]
+// extern "C" {
+//     #[wasm_bindgen(js_namespace = console)]
+//     fn log(s: &str);
+// }
 
-#[wasm_bindgen]
-pub fn test_all() {
-    log(&format!("Setup..."));
-    let (param, verifying_key, proving_key) = encryption_zkp_setup(13);
-    log(&format!("Setup done param: {:?}", param));
-    log(&format!("Setup done verifying_key: {:?}", verifying_key));
-    log(&format!("Setup done proving_key: {:?}", proving_key));
+// #[wasm_bindgen]
+// pub fn test_all() {
+//     log(&format!("Setup..."));
+//     let (param, verifying_key, proving_key) = encryption_zkp_setup(13);
+//     // log(&format!("Setup done param: {:?}", param));
+//     // log(&format!("Setup done verifying_key: {:?}", verifying_key));
+//     // log(&format!("Setup done proving_key: {:?}", proving_key));
 
-    let data = "stompesi";
+//     let data = "stompesi";
 
-    let k = BigUint::from_str("1").unwrap();
-    let k_hash_value: HashValue = hash(k.clone());
+//     let k = BigUint::from_str("1").unwrap();
+//     let k_hash_value: HashValue = hash(k.clone());
 
-    let encryption_key: HashValue = hash_with_zero_padding(k.clone());
+//     let encryption_key: HashValue = hash_with_zero_padding(k.clone());
 
-    let encrypted_data = encryptor(data, &encryption_key);
+//     let encrypted_data = encryptor(data, &encryption_key);
 
-    let encryption_public_input = EncryptionPublicInput {
-        encrypted_data,
-        k_hash_value,
-    };
-    let encryption_secret_input = EncryptionSecretInput {
-        data: data.to_string(),
-        k,
-    };
+//     let encryption_public_input = EncryptionPublicInput {
+//         encrypted_data,
+//         k_hash_value,
+//     };
+//     let encryption_secret_input = EncryptionSecretInput {
+//         data: data.to_string(),
+//         k,
+//     };
 
-    log(&format!("Proving..."));
-    let proof = prove_encryption_zkp(
-        &param,
-        &proving_key,
-        &encryption_public_input,
-        &encryption_secret_input,
-    );
-    log(&format!("Proved!"));
+//     log(&format!("Proving..."));
+//     let proof = prove_encryption_zkp(
+//         &param,
+//         &proving_key,
+//         &encryption_public_input,
+//         &encryption_secret_input,
+//     );
+//     log(&format!("Proved!"));
 
-    log(&format!("Verifying..."));
-    let is_valid = verify_encryption_zkp(&param, &verifying_key, &encryption_public_input, &proof);
-    log(&format!("Verified!"));
+//     log(&format!("Verifying..."));
+//     let is_valid = verify_encryption_zkp(&param, &verifying_key, &encryption_public_input, &proof);
+//     log(&format!("Verified!"));
 
-    log(&format!("is_valid : {:?}", is_valid));
-}
+//     log(&format!("is_valid : {:?}", is_valid));
+// }
