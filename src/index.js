@@ -11,8 +11,7 @@ import init, {
   decrypt,
   prove_encryption,
   verify_encryption_proof,
-  test_all,
-} from "./pkg/pvde.js";
+} from "../public/pkg/pvde.js";
 
 let initialized = false;
 async function ensureInitialized() {
