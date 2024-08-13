@@ -24,9 +24,7 @@
         verifyEncryptionProof,
         solveTimeLockPuzzle,
         decryptCipher,
-      } from "./pvdeWasm.js";
-
-      import { test_all } from "./pkg/pvde.js";
+      } from "./pvde.js";
 
       function uint8ArrayToHex(uint8Array) {
         return Array.from(uint8Array, (byte) =>
@@ -50,8 +48,6 @@
       // Get time-lock puzzle verifying key
       let timeLockPuzzleZkpVerifyingKey =
         await fetchTimeLockPuzzleVerifyingKey();
-
-      // await test_all();
 
       // 1. Generate time-lock puzzle param
       const timeLockPuzzleParam = await generateTimeLockPuzzleParam(2048);

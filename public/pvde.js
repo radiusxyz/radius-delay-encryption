@@ -1,4 +1,4 @@
-// pvdeWrapper.js
+// pvde.js
 
 import init, {
   generate_time_lock_puzzle_param,
@@ -37,21 +37,30 @@ export async function readStream(res) {
 }
 
 export async function fetchTimeLockPuzzleZkpParam() {
-  return await fetch("./data/time_lock_puzzle_zkp_param.data", {
-    method: "GET",
-  }).then((res) => readStream(res));
+  return await fetch(
+    "https://raw.githubusercontent.com/radiusxyz/pvde.js/main/public/data/time_lock_puzzle_zkp_param.data",
+    {
+      method: "GET",
+    }
+  ).then((res) => readStream(res));
 }
 
 export async function fetchTimeLockPuzzleProvingKey() {
-  return await fetch("./data/time_lock_puzzle_zkp_proving_key.data", {
-    method: "GET",
-  }).then((res) => readStream(res));
+  return await fetch(
+    "https://raw.githubusercontent.com/radiusxyz/pvde.js/main/public/data/time_lock_puzzle_zkp_proving_key.data",
+    {
+      method: "GET",
+    }
+  ).then((res) => readStream(res));
 }
 
 export async function fetchTimeLockPuzzleVerifyingKey() {
-  return await fetch("./data/time_lock_puzzle_zkp_verifying_key.data", {
-    method: "GET",
-  }).then((res) => readStream(res));
+  return await fetch(
+    "https://raw.githubusercontent.com/radiusxyz/pvde.js/main/public/data/time_lock_puzzle_zkp_verifying_key.data",
+    {
+      method: "GET",
+    }
+  ).then((res) => readStream(res));
 }
 
 export async function generateTimeLockPuzzleParam() {
@@ -146,21 +155,30 @@ export async function verifyTimeLockPuzzleProof(
 }
 
 export async function fetchEncryptionZkpParam() {
-  return await fetch("./data/encryption_zkp_param.data", {
-    method: "GET",
-  }).then((res) => readStream(res));
+  return await fetch(
+    "https://raw.githubusercontent.com/radiusxyz/pvde.js/main/public/data/encryption_zkp_param.data",
+    {
+      method: "GET",
+    }
+  ).then((res) => readStream(res));
 }
 
 export async function fetchEncryptionProvingKey() {
-  return await fetch("./data/encryption_zkp_proving_key.data", {
-    method: "GET",
-  }).then((res) => readStream(res));
+  return await fetch(
+    "https://raw.githubusercontent.com/radiusxyz/pvde.js/main/public/data/encryption_zkp_proving_key.data",
+    {
+      method: "GET",
+    }
+  ).then((res) => readStream(res));
 }
 
 export async function fetchEncryptionVerifyingKey() {
-  return await fetch("./data/encryption_zkp_verifying_key.data", {
-    method: "GET",
-  }).then((res) => readStream(res));
+  return await fetch(
+    "https://raw.githubusercontent.com/radiusxyz/pvde.js/main/public/data/encryption_zkp_verifying_key.data",
+    {
+      method: "GET",
+    }
+  ).then((res) => readStream(res));
 }
 
 export function encryptMessage(message, encryptionKey) {
