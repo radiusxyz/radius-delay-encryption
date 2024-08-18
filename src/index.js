@@ -62,7 +62,7 @@ export async function fetchTimeLockPuzzleVerifyingKey() {
 
 export async function generateTimeLockPuzzleParam() {
   await ensureInitialized();
-  const { y_two: yTwo, ...rest } = await generate_time_lock_puzzle_param();
+  const { y_two: yTwo, ...rest } = await generate_time_lock_puzzle_param(2048);
 
   return {
     ...rest,
