@@ -11,7 +11,7 @@ import init, {
   decrypt,
   prove_encryption,
   verify_encryption_proof,
-} from "../src/pkg/pvde.js";
+} from "./pkg/pvde.js";
 
 let initialized = false;
 async function ensureInitialized() {
@@ -61,7 +61,7 @@ export async function fetchTimeLockPuzzleVerifyingKey() {
 }
 
 export async function generateTimeLockPuzzleParam() {
-  ensureInitialized();
+  await ensureInitialized();
   const { y_two: yTwo, ...rest } = await generate_time_lock_puzzle_param(2048);
 
   return {
@@ -71,7 +71,7 @@ export async function generateTimeLockPuzzleParam() {
 }
 
 export async function generateTimeLockPuzzle(timeLockPuzzleParam) {
-  ensureInitialized();
+  await ensureInitialized();
 
   const { yTwo, ...rest } = timeLockPuzzleParam;
   const snakeCaseTimeLockPuzzleParam = { y_two: yTwo, ...rest };
@@ -95,7 +95,7 @@ export async function generateTimeLockPuzzleProof(
   timeLockPuzzleSecretInput,
   timeLockPuzzleParam
 ) {
-  ensureInitialized();
+  await ensureInitialized();
   const { kHashValue, kTwo, ...restTimeLockPuzzlePublicInput } =
     timeLockPuzzlePublicInput;
 
@@ -127,7 +127,7 @@ export async function verifyTimeLockPuzzleProof(
   timeLockPuzzleParam,
   timeLockPuzzleProof
 ) {
-  ensureInitialized();
+  await ensureInitialized();
   const { kHashValue, kTwo, ...restTimeLockPuzzlePublicInput } =
     timeLockPuzzlePublicInput;
 
@@ -178,8 +178,8 @@ export async function fetchEncryptionVerifyingKey() {
   ).then((res) => readStream(res));
 }
 
-export function encryptMessage(message, encryptionKey) {
-  ensureInitialized();
+export async function encryptMessage(message, encryptionKey) {
+  await ensureInitialized();
   return encrypt(message, encryptionKey);
 }
 
@@ -189,7 +189,7 @@ export async function generateEncryptionProof(
   encryptionPublicInput,
   encryptionSecretInput
 ) {
-  ensureInitialized();
+  await ensureInitialized();
   const { encryptedData, kHashValue } = encryptionPublicInput;
 
   const snakeCaseEncryptionPublicInput = {
@@ -211,7 +211,7 @@ export async function verifyEncryptionProof(
   encryptionPublicInput,
   encryptionProof
 ) {
-  ensureInitialized();
+  await ensureInitialized();
 
   const { encryptedData, kHashValue } = encryptionPublicInput;
   const snakeCaseEncryptionPublicInput = {
@@ -231,7 +231,7 @@ export async function solveTimeLockPuzzle(
   timeLockPuzzlePublicInput,
   timeLockPuzzleParam
 ) {
-  ensureInitialized();
+  await ensureInitialized();
 
   const k = await solve_time_lock_puzzle(
     timeLockPuzzlePublicInput.o,
@@ -242,11 +242,11 @@ export async function solveTimeLockPuzzle(
 }
 
 export async function generateSymmetricKey(k) {
-  ensureInitialized();
+  await ensureInitialized();
   return await generate_symmetric_key(k);
 }
 
-export function decryptCipher(cipher, symmetricKey) {
-  ensureInitialized();
+export async function decryptCipher(cipher, symmetricKey) {
+  await ensureInitialized();
   return decrypt(cipher, symmetricKey);
 }

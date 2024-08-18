@@ -1,0 +1,17 @@
+{
+  "name": "pvde",
+  "type": "module",
+  "description": "Practical Delay Encryption circuit in halo2.",
+  "version": "0.1.0",
+  "license": "MIT",
+  "files": [
+    "pvde_bg.wasm",
+    "pvde.js",
+    "pvde.d.ts"
+  ],
+  "main": "pvde.js",
+  "types": "pvde.d.ts",
+  "sideEffects": [
+    "./snippets/*"
+  ]
+}

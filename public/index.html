@@ -50,7 +50,7 @@
         await fetchTimeLockPuzzleVerifyingKey();
 
       // 1. Generate time-lock puzzle param
-      const timeLockPuzzleParam = await generateTimeLockPuzzleParam(2048);
+      const timeLockPuzzleParam = await generateTimeLockPuzzleParam();
 
       // 2. Generate time-lock puzzle
       const timeLockPuzzle = await generateTimeLockPuzzle(timeLockPuzzleParam);
