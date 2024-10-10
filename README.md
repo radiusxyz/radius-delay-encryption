@@ -1,4 +1,4 @@
-# PVDE.js
+# pvde.js
 
 This module provides functions to generate, prove, verify, and solve time-lock puzzles, as well as perform symmetric key encryption and decryption. It leverages WebAssembly (Wasm) modules to enhance the cryptographic operations.
 
