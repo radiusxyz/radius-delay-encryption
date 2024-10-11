@@ -7,24 +7,7 @@
 
   <body>
     <script type="module">
-      import {
-        fetchTimeLockPuzzleZkpParam,
-        fetchTimeLockPuzzleProvingKey,
-        fetchTimeLockPuzzleVerifyingKey,
-        generateTimeLockPuzzleParam,
-        generateTimeLockPuzzle,
-        generateTimeLockPuzzleProof,
-        verifyTimeLockPuzzleProof,
-        fetchEncryptionZkpParam,
-        fetchEncryptionProvingKey,
-        fetchEncryptionVerifyingKey,
-        generateSymmetricKey,
-        encryptMessage,
-        generateEncryptionProof,
-        verifyEncryptionProof,
-        solveTimeLockPuzzle,
-        decryptCipher,
-      } from "./index.js";
+      import { pvde, skde } from "./index.js";
 
       function uint8ArrayToHex(uint8Array) {
         return Array.from(uint8Array, (byte) =>

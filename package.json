@@ -1,7 +1,7 @@
 {
   "name": "radius-delay-encryption",
   "version": "1.0.0",
-  "description": "PVDE wasm functions in JavaScript",
+  "description": "Delay encryption WASM functions in JavaScript",
   "main": "src/index.js",
   "scripts": {
     "build": "webpack --mode production",
@@ -9,19 +9,19 @@
   },
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/radiusxyz/pvde.js.git"
+    "url": "git+https://github.com/radiusxyz/radius-delay-encryption.git"
   },
   "keywords": [
     "library",
     "javascript",
-    "pvde"
+    "radius-delay-encryption"
   ],
   "author": "gylman",
   "license": "MIT",
   "devDependencies": {
     "webpack": "^5.0.0",
     "babel-loader": "^8.0.0",
-    "babel-core": "^7.0.0",
+    "@babel/core": "^7.0.0",
     "babel-preset-env": "^1.0.0",
     "jest": "^26.0.0"
   },
