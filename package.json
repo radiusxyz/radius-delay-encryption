@@ -1,5 +1,5 @@
 {
-  "name": "pvde-js",
+  "name": "radius-delay-encryption",
   "version": "1.0.0",
   "description": "PVDE wasm functions in JavaScript",
   "main": "src/index.js",
