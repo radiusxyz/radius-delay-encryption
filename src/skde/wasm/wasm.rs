@@ -1,5 +1,7 @@
 use serde_wasm_bindgen::{self, from_value};
-use skde::{decrypt as decryptor, encrypt as encryptor, PublicKey, SecretKey, SkdeParams};
+use skde::delay_encryption::{
+    decrypt as decryptor, encrypt as encryptor, PublicKey, SecretKey, SkdeParams,
+};
 use wasm_bindgen::{prelude::*, JsValue};
 
 #[wasm_bindgen]

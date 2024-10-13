@@ -1,28 +1,12 @@
 // skde.js
 
-import init, { encrypt, decrypt } from "./pkg/skde-wasm.js";
+import init, { encrypt, decrypt } from "./wasm/pkg/skde_wasm.js";
 
 let initialized = false;
 async function ensureInitialized() {
   if (!initialized) {
-    try {
-      const contents = await snap.request({
-        method: "snap_getFile",
-        params: {
-          path: "./build/pvde_bg.wasm",
-          encoding: "base64",
-        },
-      });
-
-      const buffer = base64ToArrayBuffer(contents);
-      const wasmModule = await init(buffer);
-
-      await init(wasmModule);
-
-      initialized = true;
-    } catch (error) {
-      console.log("stompesi error", error);
-    }
+    await init();
+    initialized = true;
   }
 }
 

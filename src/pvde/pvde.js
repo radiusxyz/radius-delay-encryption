@@ -11,7 +11,7 @@ import init, {
   decrypt,
   prove_encryption,
   verify_encryption_proof,
-} from "./pkg/pvde.js";
+} from "./wasm/pkg/pvde_wasm.js";
 
 let initialized = false;
 async function ensureInitialized() {

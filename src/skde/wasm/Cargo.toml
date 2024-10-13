@@ -28,6 +28,7 @@ criterion = { version = "0.3", features = ["html_reports"] }
 
 [lib]
 name = "skde_wasm"
+path = "./wasm.rs"
 crate-type = ["cdylib", "rlib"]
 doctest = false
 bench = false

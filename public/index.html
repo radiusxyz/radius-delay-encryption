@@ -2,115 +2,31 @@
 <html lang="en-US">
   <head>
     <meta charset="utf-8" />
-    <title>PVDE in wasm</title>
+    <title>Delay encryption in wasm</title>
   </head>
 
   <body>
     <script type="module">
-      import { pvde, skde } from "./index.js";
-
-      function uint8ArrayToHex(uint8Array) {
-        return Array.from(uint8Array, (byte) =>
-          byte.toString(16).padStart(2, "0")
-        ).join("");
-      }
-
-      async function readStream(res) {
-        const bytes = await res.arrayBuffer();
-        const uint8bytes = new Uint8Array(bytes);
-        // const string = uint8ArrayToHex(uint8bytes);
-        return uint8bytes;
-      }
-
-      // Load time-lock puzzle zkp param and keys
-      // Get time-lock puzzle zkp param
-      let timeLockPuzzleZkpParam = await fetchTimeLockPuzzleZkpParam();
-
-      // Get time-lock puzzle proving_key
-      let timeLockPuzzleZkpProvingKey = await fetchTimeLockPuzzleProvingKey();
-      // Get time-lock puzzle verifying key
-      let timeLockPuzzleZkpVerifyingKey =
-        await fetchTimeLockPuzzleVerifyingKey();
-
-      // 1. Generate time-lock puzzle param
-      const timeLockPuzzleParam = await generateTimeLockPuzzleParam();
-
-      // 2. Generate time-lock puzzle
-      const timeLockPuzzle = await generateTimeLockPuzzle(timeLockPuzzleParam);
-
-      const [timeLockPuzzleSecretInput, timeLockPuzzlePublicInput] =
-        timeLockPuzzle;
-
-      // 3. Generate zk-proof for the validity of time-lock puzzle
-      const timeLockPuzzleProof = await generateTimeLockPuzzleProof(
-        timeLockPuzzleZkpParam,
-        timeLockPuzzleZkpProvingKey,
-        timeLockPuzzlePublicInput,
-        timeLockPuzzleSecretInput, // time-lock puzzle secret input
-        timeLockPuzzleParam
-      );
-
-      // 4. Verify time-lock puzzle proof
-      const isTimeLockPuzzleVerified = await verifyTimeLockPuzzleProof(
-        timeLockPuzzleZkpParam,
-        timeLockPuzzleZkpVerifyingKey,
-        timeLockPuzzlePublicInput,
-        timeLockPuzzleParam,
-        timeLockPuzzleProof
-      );
-
-      // Load encryption zkp param and keys
-      // Get encryption zkp param
-      let encryptionZkpParam = await fetchEncryptionZkpParam();
-
-      // Get encryption proving_key
-      let encryptionProvingKey = await fetchEncryptionProvingKey();
-
-      // Get encryption verifying key
-      let encryptionVerifyingKey = await fetchEncryptionVerifyingKey();
-
-      const message = "Hello World";
-
-      // 1. Encryption
-      const encryptionKey = await generateSymmetricKey(
-        timeLockPuzzleSecretInput.k
-      );
-      const cipher = await encryptMessage(message, encryptionKey);
-
-      const encryptionPublicInput = {
-        encryptedData: cipher,
-        kHashValue: timeLockPuzzlePublicInput.kHashValue,
+      import { pvde, skde } from "../src/index.js";
+      console.log(skde);
+      const skde_params = {
+        n: 109108784166676529682340577929498188950239585527883687884827626040722072371127456712391033422811328348170518576414206624244823392702116014678887602655605057984874271545556188865755301275371611259397284800785551682318694176857633188036311000733221068448165870969366710007572931433736793827320953175136545355129,
+        g: 4,
+        t: 4,
+        h: 4294967296,
+        max_sequencer_number: 2,
       };
-      const encryptionSecretInput = {
-        data: message,
-        k: timeLockPuzzleSecretInput.k,
+      const message =
+        "0xf869018203e882520894f17f52151ebef6c7334fad080c5704d77216b732881bc16d674ec80000801ba02da1c48b670996dcb1f447ef9ef00b33033c48a4fe";
+      const encryption_key = {
+        pk: 97350639893844875259406981600888321194305917137999399274762688319426088791352078753288922036016361492207327772926699425559311118445528492571946758457378038340002680384203303992010567527390872928816651528130315490878270554067043543022742929019812007013975713841965245621843717343223873844655139149382856224739,
       };
 
-      // 2. Prove encryption
-      const encryptionProof = await generateEncryptionProof(
-        encryptionZkpParam,
-        encryptionProvingKey,
-        encryptionPublicInput,
-        encryptionSecretInput
+      const cipherMessage = await skde.encryptMessage(
+        skde_params,
+        message,
+        encryption_key
       );
-
-      // 3. Verify encryption proof
-      const isEncryptionProofVerified = await verifyEncryptionProof(
-        encryptionZkpParam,
-        encryptionVerifyingKey,
-        encryptionPublicInput,
-        encryptionProof
-      );
-
-      // 4. Get decryption key
-      const k = await solveTimeLockPuzzle(
-        timeLockPuzzlePublicInput,
-        timeLockPuzzleParam
-      );
-      const decryptionKey = await generateSymmetricKey(k);
-
-      // 5. Decryption
-      const decryptedMessage = decryptCipher(cipher, decryptionKey);
     </script>
   </body>
 </html>
