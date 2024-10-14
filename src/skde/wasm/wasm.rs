@@ -12,7 +12,7 @@ use wasm_bindgen::{prelude::*, JsValue};
 struct SkdeParamsJson {
     n: String,
     g: String,
-    t: u32, // Assuming t is a regular integer
+    t: u32,
     h: String,
     max_sequencer_number: String,
 }
@@ -45,7 +45,6 @@ pub fn encrypt(skde_params: JsValue, message: JsValue, encryption_key: JsValue) 
 
     log(&format!("message: {:?}", message));
 
-    // Deserialize skde_params
     let skde_params_json: SkdeParamsJson = match from_value(skde_params) {
         Ok(params) => params,
         Err(e) => {
@@ -54,7 +53,6 @@ pub fn encrypt(skde_params: JsValue, message: JsValue, encryption_key: JsValue) 
         }
     };
 
-    // Convert the deserialized string values into `BigUint`
     let skde_params = SkdeParams {
         n: BigUint::from_str(&skde_params_json.n).unwrap(),
         g: BigUint::from_str(&skde_params_json.g).unwrap(),
@@ -65,7 +63,6 @@ pub fn encrypt(skde_params: JsValue, message: JsValue, encryption_key: JsValue) 
 
     log(&format!("skde_params: {:?}", skde_params));
 
-    // Deserialize encryption_key
     let encryption_key_json: PublicKeyJson = match from_value(encryption_key) {
         Ok(key) => key,
         Err(e) => {
@@ -74,14 +71,12 @@ pub fn encrypt(skde_params: JsValue, message: JsValue, encryption_key: JsValue) 
         }
     };
 
-    // Convert the deserialized string values into `BigUint`
     let encryption_key = PublicKey {
         pk: BigUint::from_str(&encryption_key_json.pk).unwrap(),
     };
 
     log(&format!("encryption_key: {:?}", encryption_key));
 
-    // Perform encryption
     match encryptor(&skde_params, &message, &encryption_key) {
         Ok(ciphertext) => to_value(&ciphertext.to_string()).unwrap_or(JsValue::null()),
         Err(_) => {
@@ -93,7 +88,6 @@ pub fn encrypt(skde_params: JsValue, message: JsValue, encryption_key: JsValue) 
 
 #[wasm_bindgen]
 pub fn decrypt(skde_params: JsValue, ciphertext: JsValue, decryption_key: JsValue) -> JsValue {
-    // Step 1: Deserialize `skde_params`
     let skde_params_json: SkdeParamsJson = match from_value(skde_params) {
         Ok(params) => params,
         Err(e) => {
@@ -102,7 +96,6 @@ pub fn decrypt(skde_params: JsValue, ciphertext: JsValue, decryption_key: JsValu
         }
     };
 
-    // Convert the deserialized string values into `BigUint`
     let skde_params = SkdeParams {
         n: BigUint::from_str(&skde_params_json.n).unwrap(),
         g: BigUint::from_str(&skde_params_json.g).unwrap(),
@@ -113,7 +106,6 @@ pub fn decrypt(skde_params: JsValue, ciphertext: JsValue, decryption_key: JsValu
 
     log(&format!("skde_params: {:?}", skde_params));
 
-    // Step 2: Extract ciphertext from JsValue
     let ciphertext: String = match ciphertext.as_string() {
         Some(ciphertext) => ciphertext,
         None => {
@@ -124,7 +116,6 @@ pub fn decrypt(skde_params: JsValue, ciphertext: JsValue, decryption_key: JsValu
 
     log(&format!("ciphertext: {:?}", ciphertext));
 
-    // Step 3: Deserialize `decryption_key`
     let decryption_key_json: SecretKeyJson = match from_value(decryption_key) {
         Ok(key) => key,
         Err(e) => {
@@ -133,18 +124,16 @@ pub fn decrypt(skde_params: JsValue, ciphertext: JsValue, decryption_key: JsValu
         }
     };
 
-    // Convert the deserialized string value into `BigUint`
     let decryption_key = SecretKey {
         sk: BigUint::from_str(&decryption_key_json.sk).unwrap(),
     };
 
     log(&format!("decryption_key: {:?}", decryption_key));
 
-    // Step 4: Perform decryption and handle the result
     match decryptor(&skde_params, &ciphertext, &decryption_key) {
         Ok(decrypted_message) => {
             to_value(&decrypted_message.to_string()).unwrap_or(JsValue::null())
         }
-        Err(_) => JsValue::null(), // Return null in case of an error
+        Err(_) => JsValue::null(),
     }
 }
