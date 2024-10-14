@@ -1,33 +1,82 @@
 use std::str::FromStr;
 
 use num_bigint::BigUint;
-use serde_wasm_bindgen::to_value;
+use serde_wasm_bindgen::{from_value, to_value};
 use skde::delay_encryption::{
     decrypt as decryptor, encrypt as encryptor, PublicKey, SecretKey, SkdeParams,
 };
 use wasm_bindgen::{prelude::*, JsValue};
 
 #[wasm_bindgen]
-pub fn encrypt() -> JsValue {
-    // Declare local variables for encryption
+extern "C" {
+    #[wasm_bindgen(js_namespace = console)]
+    fn log(s: &str);
+}
+
+#[wasm_bindgen]
+pub fn encrypt(skde_params: JsValue, message: JsValue, encryption_key: JsValue) -> JsValue {
+    let message: String = match message.as_string() {
+        Some(msg) => msg,
+        None => {
+            log("Failed to convert message to string.");
+            return JsValue::from_str(
+                "Error: Failed to convert message to
+    string.",
+            );
+        }
+    };
+
+    log(&format!("message: {:?}", message));
+
+    let skde_params: SkdeParams = match from_value(skde_params) {
+        Ok(params) => params,
+        Err(e) => {
+            log(&format!("Failed to deserialize skde_params: {:?}", e));
+            return JsValue::from_str(
+                "Error: Failed to deserialize
+    skde_params.",
+            );
+        }
+    };
+
+    log(&format!("skde_params: {:?}", skde_params));
+
+    let encryption_key: PublicKey = match from_value(encryption_key) {
+        Ok(key) => key,
+        Err(e) => {
+            log(&format!("Failed to deserialize encryption_key: {:?}", e));
+            return JsValue::from_str(
+                "Error: Failed to deserialize
+    encryption_key.",
+            );
+        }
+    };
+
+    log(&format!("encryption_key: {:?}", encryption_key));
+
     let skde_params = SkdeParams {
         n: BigUint::from_str("109108784166676529682340577929498188950239585527883687884827626040722072371127456712391033422811328348170518576414206624244823392702116014678887602655605057984874271545556188865755301275371611259397284800785551682318694176857633188036311000733221068448165870969366710007572931433736793827320953175136545355129").unwrap(),
-        g: BigUint::from(4u32),
+        g: BigUint::from(4),
         t: 4,
         h: BigUint::from_str("4294967296").unwrap(),
         max_sequencer_number: BigUint::from_str("2").unwrap(),
     };
 
-    let message = "0xf869018203e882520894f17f52151ebef6c7334fad080c5704d77216b732881bc16d674ec80000801ba02da1c48b670996dcb1f447ef9ef00b33033c48a4fe";
+    let message =
+    "0xf869018203e882520894f17f52151ebef6c7334fad080c5704d77216b732881bc16d674ec80000801ba02da1c48b670996dcb1f447ef9ef00b33033c48a4fe"
+    ;
 
     let encryption_key = PublicKey {
         pk: BigUint::from_str("27897411317866240410600830526788165981341969904039758194675272671868652866892274441298243014317800177611419642993059565060538386730472765976439751299066279239018615809165217144853299923809516494049479159549907327351509242281465077907977695359158281231729142725042643997952251325328973964444619144348848423785").unwrap(),
     };
 
-    // Perform encryption and handle the result
+    // Perform encryption
     match encryptor(&skde_params, &message, &encryption_key) {
-        Ok(_) => to_value("success").unwrap_or(JsValue::null()), // Return "success" as JsValue
-        Err(_) => JsValue::null(),                               // Return null in case of an error
+        Ok(ciphertext) => to_value(&ciphertext.to_string()).unwrap_or(JsValue::null()),
+        Err(_) => {
+            log("Encryption failed.");
+            JsValue::from_str("Error: Encryption failed.")
+        }
     }
 }
 
