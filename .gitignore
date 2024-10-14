@@ -1,4 +1,1 @@
-target
-Cargo.lock
-benches/data/
-.npmrc
+/node_modules

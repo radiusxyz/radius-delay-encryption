@@ -1,0 +1,42 @@
+[package]
+name = "pvde"
+description = "Practical Verifiable Delay Encryption WASM"
+license = "MIT"
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+
+[workspace.package]
+version = "0.1.0"
+edition = "2021"
+rust-version = "1.76"
+
+[workspace]
+
+resolver = "2"
+
+[dependencies]
+pvde = { git = "https://github.com/radiusxyz/pvde" } 
+serde = { version = "1.0.188", features = ["derive"] }
+wasm-bindgen = "0.2.81"
+serde-wasm-bindgen = "0.4"
+js-sys = "0.3"
+
+[dev-dependencies]
+paste = "1.0.7"
+proptest = "1.0.0"
+criterion = { version = "0.3", features = ["html_reports"] }
+
+[lib]
+doctest = false
+bench = false
+name = "pvde_wasm"
+crate-type = ["cdylib", "rlib"]
+path = "./wasm.rs"
+
+[target.'cfg(target_family = "wasm")'.dependencies]
+getrandom = { version = "0.2", features = ["js"] }
+console_error_panic_hook = "0.1.7"
+rayon = "1.5"
+web-sys = { version = "0.3", features = ["Request", "Window", "Response"] }
+wasm-bindgen-futures = "0.4"

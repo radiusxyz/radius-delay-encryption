@@ -11,7 +11,7 @@ import init, {
   decrypt,
   prove_encryption,
   verify_encryption_proof,
-} from "./pkg/pvde.js";
+} from "./wasm/pkg/pvde_wasm.js";
 
 let initialized = false;
 async function ensureInitialized() {
@@ -27,13 +27,13 @@ function uint8ArrayToHex(uint8Array) {
   ).join("");
 }
 
-export async function readStream(res) {
+async function readStream(res) {
   const bytes = await res.arrayBuffer();
   const uint8bytes = new Uint8Array(bytes);
   return uint8bytes;
 }
 
-export async function fetchTimeLockPuzzleZkpParam() {
+async function fetchTimeLockPuzzleZkpParam() {
   return await fetch(
     "https://raw.githubusercontent.com/radiusxyz/pvde.js/main/public/data/time_lock_puzzle_zkp_param.data",
     {
@@ -42,7 +42,7 @@ export async function fetchTimeLockPuzzleZkpParam() {
   ).then((res) => readStream(res));
 }
 
-export async function fetchTimeLockPuzzleProvingKey() {
+async function fetchTimeLockPuzzleProvingKey() {
   return await fetch(
     "https://raw.githubusercontent.com/radiusxyz/pvde.js/main/public/data/time_lock_puzzle_zkp_proving_key.data",
     {
@@ -51,7 +51,7 @@ export async function fetchTimeLockPuzzleProvingKey() {
   ).then((res) => readStream(res));
 }
 
-export async function fetchTimeLockPuzzleVerifyingKey() {
+async function fetchTimeLockPuzzleVerifyingKey() {
   return await fetch(
     "https://raw.githubusercontent.com/radiusxyz/pvde.js/main/public/data/time_lock_puzzle_zkp_verifying_key.data",
     {
@@ -60,7 +60,7 @@ export async function fetchTimeLockPuzzleVerifyingKey() {
   ).then((res) => readStream(res));
 }
 
-export async function generateTimeLockPuzzleParam() {
+async function generateTimeLockPuzzleParam() {
   await ensureInitialized();
   const { y_two: yTwo, ...rest } = await generate_time_lock_puzzle_param(2048);
 
@@ -70,7 +70,7 @@ export async function generateTimeLockPuzzleParam() {
   };
 }
 
-export async function generateTimeLockPuzzle(timeLockPuzzleParam) {
+async function generateTimeLockPuzzle(timeLockPuzzleParam) {
   await ensureInitialized();
 
   const { yTwo, ...rest } = timeLockPuzzleParam;
@@ -88,7 +88,7 @@ export async function generateTimeLockPuzzle(timeLockPuzzleParam) {
   ];
 }
 
-export async function generateTimeLockPuzzleProof(
+async function generateTimeLockPuzzleProof(
   timeLockPuzzleZkpParam,
   timeLockPuzzleZkpProvingKey,
   timeLockPuzzlePublicInput,
@@ -120,7 +120,7 @@ export async function generateTimeLockPuzzleProof(
   );
 }
 
-export async function verifyTimeLockPuzzleProof(
+async function verifyTimeLockPuzzleProof(
   timeLockPuzzleZkpParam,
   timeLockPuzzleZkpVerifyingKey,
   timeLockPuzzlePublicInput,
@@ -151,7 +151,7 @@ export async function verifyTimeLockPuzzleProof(
   );
 }
 
-export async function fetchEncryptionZkpParam() {
+async function fetchEncryptionZkpParam() {
   return await fetch(
     "https://raw.githubusercontent.com/radiusxyz/pvde.js/main/public/data/encryption_zkp_param.data",
     {
@@ -160,7 +160,7 @@ export async function fetchEncryptionZkpParam() {
   ).then((res) => readStream(res));
 }
 
-export async function fetchEncryptionProvingKey() {
+async function fetchEncryptionProvingKey() {
   return await fetch(
     "https://raw.githubusercontent.com/radiusxyz/pvde.js/main/public/data/encryption_zkp_proving_key.data",
     {
@@ -169,7 +169,7 @@ export async function fetchEncryptionProvingKey() {
   ).then((res) => readStream(res));
 }
 
-export async function fetchEncryptionVerifyingKey() {
+async function fetchEncryptionVerifyingKey() {
   return await fetch(
     "https://raw.githubusercontent.com/radiusxyz/pvde.js/main/public/data/encryption_zkp_verifying_key.data",
     {
@@ -178,12 +178,12 @@ export async function fetchEncryptionVerifyingKey() {
   ).then((res) => readStream(res));
 }
 
-export async function encryptMessage(message, encryptionKey) {
+async function encryptMessage(message, encryptionKey) {
   await ensureInitialized();
   return encrypt(message, encryptionKey);
 }
 
-export async function generateEncryptionProof(
+async function generateEncryptionProof(
   encryptionZkpParam,
   encryptionProvingKey,
   encryptionPublicInput,
@@ -205,7 +205,7 @@ export async function generateEncryptionProof(
   );
 }
 
-export async function verifyEncryptionProof(
+async function verifyEncryptionProof(
   encryptionZkpParam,
   encryptionVerifyingKey,
   encryptionPublicInput,
@@ -227,7 +227,7 @@ export async function verifyEncryptionProof(
   );
 }
 
-export async function solveTimeLockPuzzle(
+async function solveTimeLockPuzzle(
   timeLockPuzzlePublicInput,
   timeLockPuzzleParam
 ) {
@@ -241,12 +241,32 @@ export async function solveTimeLockPuzzle(
   return k;
 }
 
-export async function generateSymmetricKey(k) {
+async function generateSymmetricKey(k) {
   await ensureInitialized();
   return await generate_symmetric_key(k);
 }
 
-export async function decryptCipher(cipher, symmetricKey) {
+async function decryptCipher(cipher, symmetricKey) {
   await ensureInitialized();
   return decrypt(cipher, symmetricKey);
 }
+
+export default {
+  readStream,
+  fetchTimeLockPuzzleZkpParam,
+  fetchTimeLockPuzzleProvingKey,
+  fetchTimeLockPuzzleVerifyingKey,
+  generateTimeLockPuzzleParam,
+  generateTimeLockPuzzle,
+  generateTimeLockPuzzleProof,
+  verifyTimeLockPuzzleProof,
+  fetchEncryptionZkpParam,
+  fetchEncryptionProvingKey,
+  fetchEncryptionVerifyingKey,
+  encryptMessage,
+  generateEncryptionProof,
+  verifyEncryptionProof,
+  solveTimeLockPuzzle,
+  generateSymmetricKey,
+  decryptCipher,
+};
