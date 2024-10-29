@@ -1,28 +1,25 @@
-# pvde.js
+Here’s the README updated with the `skde` functions for encryption and decryption.
 
-This module provides functions to generate, prove, verify, and solve time-lock puzzles, as well as perform symmetric key encryption and decryption. It leverages WebAssembly (Wasm) modules to enhance the cryptographic operations.
+---
+
+# Cryptographic Modules
+
+This project provides `pvde` and `skde` modules, which facilitate secure cryptographic operations, including time-lock puzzle generation, proof generation and verification, symmetric key encryption and decryption, and more. These modules leverage WebAssembly (Wasm) for efficient cryptographic computations.
 
 ## Table of Contents
+
 - [Installation](#installation)
 - [Initialization](#initialization)
 - [Usage](#usage)
-  - [Time-Lock Puzzle](#time-lock-puzzle)
-    - [Generating Parameters](#generating-time-lock-puzzle-parameters)
-    - [Creating a Puzzle](#generating-time-lock-puzzle)
-    - [Proof Generation](#generating-time-lock-puzzle-proof)
-    - [Proof Verification](#verifying-time-lock-puzzle-proof)
-    - [Solving the Puzzle](#solving-time-lock-puzzle)
-  - [Encryption](#encryption)
-    - [Message Encryption](#encrypting-message)
-    - [Proof Generation](#generating-encryption-proof)
-    - [Proof Verification](#verifying-encryption-proof)
-    - [Decryption](#decrypting-message)
+  - [Time-Lock Puzzle Operations (pvde)](#time-lock-puzzle-operations-pvde)
+  - [Encryption Operations (pvde)](#encryption-operations-pvde)
+  - [SKDE Encryption and Decryption](#skde-encryption-and-decryption)
 - [Dependencies](#dependencies)
 - [License](#license)
 
 ## Installation
 
-To use the `pvde.js` module, ensure you have installed all dependencies and WebAssembly modules. Clone the repository and install any required packages:
+To use these modules, ensure you have installed all dependencies and the required WebAssembly files. Clone the repository and install necessary packages:
 
 ```bash
 git clone https://github.com/radiusxyz/pvde.js.git
@@ -32,34 +29,43 @@ npm install
 
 ## Initialization
 
-The module must be initialized before using its functions. This ensures that the WebAssembly module is loaded correctly.
+Before using the functions in either `pvde` or `skde`, initialize the modules to load the WebAssembly components properly.
 
 ```javascript
-import { ensureInitialized } from './pvde.js';
+import { pvde, skde } from "./cryptoModules";
 
-await ensureInitialized();
+await pvde.ensureInitialized();
+await skde.ensureInitialized();
 ```
 
 ## Usage
 
-### Time-Lock Puzzle
+### Time-Lock Puzzle Operations (pvde)
+
+The `pvde` module provides functionality for creating and verifying time-lock puzzles, allowing for time-delayed decryption of messages.
 
 #### Generating Time-Lock Puzzle Parameters
+
 Generate parameters for creating a time-lock puzzle:
+
 ```javascript
-const params = await generateTimeLockPuzzleParam();
+const params = await pvde.generateTimeLockPuzzleParam();
 ```
 
-#### Generating Time-Lock Puzzle
-Create a time-lock puzzle using the generated parameters:
+#### Creating a Time-Lock Puzzle
+
+With generated parameters, create a time-lock puzzle:
+
 ```javascript
-const puzzle = await generateTimeLockPuzzle(params);
+const puzzle = await pvde.generateTimeLockPuzzle(params);
 ```
 
-#### Generating Time-Lock Puzzle Proof
-Generate a Zero-Knowledge Proof (ZKP) for the time-lock puzzle:
+#### Generating a Time-Lock Puzzle Proof
+
+Create a Zero-Knowledge Proof (ZKP) for a time-lock puzzle:
+
 ```javascript
-const proof = await generateTimeLockPuzzleProof(
+const proof = await pvde.generateTimeLockPuzzleProof(
   zkpParam,
   provingKey,
   publicInput,
@@ -68,10 +74,12 @@ const proof = await generateTimeLockPuzzleProof(
 );
 ```
 
-#### Verifying Time-Lock Puzzle Proof
-Verify the generated proof for the time-lock puzzle:
+#### Verifying a Time-Lock Puzzle Proof
+
+Verify the ZKP for the time-lock puzzle to ensure validity:
+
 ```javascript
-const isValid = await verifyTimeLockPuzzleProof(
+const isValid = await pvde.verifyTimeLockPuzzleProof(
   zkpParam,
   verifyingKey,
   publicInput,
@@ -80,24 +88,32 @@ const isValid = await verifyTimeLockPuzzleProof(
 );
 ```
 
-#### Solving Time-Lock Puzzle
-Solve the time-lock puzzle to reveal the symmetric key:
+#### Solving a Time-Lock Puzzle
+
+After verification, solve the puzzle to retrieve the symmetric key:
+
 ```javascript
-const symmetricKey = await solveTimeLockPuzzle(publicInput, params);
+const symmetricKey = await pvde.solveTimeLockPuzzle(publicInput, params);
 ```
 
-### Encryption
+### Encryption Operations (pvde)
 
-#### Encrypting Message
-Encrypt a message using a symmetric key:
+The modules also support encryption and decryption operations using symmetric keys and zero-knowledge proof (ZKP) generation for encrypted messages.
+
+#### Encrypting a Message
+
+Encrypt a message using a provided encryption key:
+
 ```javascript
-const encryptedMessage = await encryptMessage(message, encryptionKey);
+const encryptedMessage = await pvde.encryptMessage(message, encryptionKey);
 ```
 
-#### Generating Encryption Proof
-Generate a ZKP for the encrypted message:
+#### Generating an Encryption Proof
+
+Create a ZKP to validate the encryption of a message:
+
 ```javascript
-const encryptionProof = await generateEncryptionProof(
+const encryptionProof = await pvde.generateEncryptionProof(
   zkpParam,
   provingKey,
   publicInput,
@@ -105,10 +121,12 @@ const encryptionProof = await generateEncryptionProof(
 );
 ```
 
-#### Verifying Encryption Proof
-Verify the proof for the encrypted message:
+#### Verifying an Encryption Proof
+
+Verify the ZKP for an encrypted message:
+
 ```javascript
-const isValidEncryptionProof = await verifyEncryptionProof(
+const isValidEncryptionProof = await pvde.verifyEncryptionProof(
   zkpParam,
   verifyingKey,
   publicInput,
@@ -116,19 +134,54 @@ const isValidEncryptionProof = await verifyEncryptionProof(
 );
 ```
 
-#### Decrypting Message
-Decrypt a message using the symmetric key:
+#### Decrypting a Message
+
+Decrypt an encrypted message using the symmetric key:
+
 ```javascript
-const decryptedMessage = await decryptCipher(cipher, symmetricKey);
+const decryptedMessage = await pvde.decryptCipher(cipher, symmetricKey);
+```
+
+### SKDE Encryption and Decryption
+
+The `skde` module provides lightweight symmetric key encryption and decryption functions, useful for secure message handling.
+
+#### Encrypting a Message (skde)
+
+Encrypt a message with the `skde` module using provided encryption parameters and key:
+
+```javascript
+const skdeParams = {
+  /* parameters specific to skde */
+};
+const encryptedMessage = await skde.encryptMessage(
+  skdeParams,
+  message,
+  encryptionKey
+);
+```
+
+#### Decrypting a Message (skde)
+
+Decrypt an encrypted message with `skde` using the appropriate parameters and secret key:
+
+```javascript
+const decryptedMessage = await skde.decryptCipher(
+  skdeParams,
+  cipherText,
+  secretKey
+);
 ```
 
 ## Dependencies
 
-The module depends on the following:
-- WebAssembly (Wasm) modules for cryptographic operations
-- Fetch API for downloading puzzle and encryption keys
+This project relies on the following:
 
-Make sure that you have the necessary keys and data files available at the paths specified in the code:
+- WebAssembly (Wasm) modules for cryptographic operations.
+- Fetch API for downloading cryptographic parameters and keys.
+
+Ensure that the necessary parameter and key files are available at the correct URLs or local paths specified in the code:
+
 - `time_lock_puzzle_zkp_param.data`
 - `time_lock_puzzle_zkp_proving_key.data`
 - `time_lock_puzzle_zkp_verifying_key.data`
@@ -136,3 +189,8 @@ Make sure that you have the necessary keys and data files available at the paths
 - `encryption_zkp_proving_key.data`
 - `encryption_zkp_verifying_key.data`
 
+## License
+
+This project is licensed under the MIT License. See the [LICENSE](LICENSE) file for details.
+
+---
