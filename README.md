@@ -1,7 +1,3 @@
-Here’s the README updated with the `skde` functions for encryption and decryption.
-
----
-
 # Cryptographic Modules
 
 This project provides `pvde` and `skde` modules, which facilitate secure cryptographic operations, including time-lock puzzle generation, proof generation and verification, symmetric key encryption and decryption, and more. These modules leverage WebAssembly (Wasm) for efficient cryptographic computations.
@@ -22,8 +18,8 @@ This project provides `pvde` and `skde` modules, which facilitate secure cryptog
 To use these modules, ensure you have installed all dependencies and the required WebAssembly files. Clone the repository and install necessary packages:
 
 ```bash
-git clone https://github.com/radiusxyz/pvde.js.git
-cd pvde.js
+git clone https://github.com/radiusxyz/radius-delay-encryption.js.git
+cd radius-delay-encryption.js
 npm install
 ```
 
@@ -32,7 +28,7 @@ npm install
 Before using the functions in either `pvde` or `skde`, initialize the modules to load the WebAssembly components properly.
 
 ```javascript
-import { pvde, skde } from "./cryptoModules";
+import { pvde, skde } from "./radius-delay-encryption";
 
 await pvde.ensureInitialized();
 await skde.ensureInitialized();
@@ -188,9 +184,4 @@ Ensure that the necessary parameter and key files are available at the correct U
 - `encryption_zkp_param.data`
 - `encryption_zkp_proving_key.data`
 - `encryption_zkp_verifying_key.data`
-
-## License
-
-This project is licensed under the MIT License. See the [LICENSE](LICENSE) file for details.
-
 ---
