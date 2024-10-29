@@ -18,8 +18,8 @@ This project provides `pvde` and `skde` modules, which facilitate secure cryptog
 To use these modules, ensure you have installed all dependencies and the required WebAssembly files. Clone the repository and install necessary packages:
 
 ```bash
-git clone https://github.com/radiusxyz/radius-delay-encryption.js.git
-cd radius-delay-encryption.js
+git clone https://github.com/radiusxyz/radius-delay-encryption.git
+cd radius-delay-encryption
 npm install
 ```
 
