@@ -14,6 +14,11 @@ import init, {
 } from "./wasm/pkg/pvde_wasm.js";
 
 let initialized = false;
+
+/**
+ * Ensures the WebAssembly module is initialized only once.
+ * @returns {Promise<void>} A promise that resolves when initialization is complete.
+ */
 async function ensureInitialized() {
   if (!initialized) {
     await init();
@@ -21,73 +26,90 @@ async function ensureInitialized() {
   }
 }
 
+/**
+ * Converts a Uint8Array to a hexadecimal string.
+ * @param {Uint8Array} uint8Array - The array to convert.
+ * @returns {string} The hexadecimal string representation.
+ */
 function uint8ArrayToHex(uint8Array) {
   return Array.from(uint8Array, (byte) =>
     byte.toString(16).padStart(2, "0")
   ).join("");
 }
 
+/**
+ * Reads a response stream and returns its bytes as a Uint8Array.
+ * @param {Response} res - The response object.
+ * @returns {Promise<Uint8Array>} A promise that resolves to the byte array.
+ */
 async function readStream(res) {
   const bytes = await res.arrayBuffer();
-  const uint8bytes = new Uint8Array(bytes);
-  return uint8bytes;
+  return new Uint8Array(bytes);
 }
 
+/**
+ * Fetches time lock puzzle ZKP parameters from a specified URL.
+ * @returns {Promise<Uint8Array>} A promise that resolves to the fetched parameter data.
+ */
 async function fetchTimeLockPuzzleZkpParam() {
-  return await fetch(
-    "https://raw.githubusercontent.com/radiusxyz/pvde.js/main/public/data/time_lock_puzzle_zkp_param.data",
-    {
-      method: "GET",
-    }
+  return fetch(
+    "https://raw.githubusercontent.com/radiusxyz/pvde.js/main/public/data/time_lock_puzzle_zkp_param.data"
   ).then((res) => readStream(res));
 }
 
+/**
+ * Fetches time lock puzzle proving key.
+ * @returns {Promise<Uint8Array>} A promise that resolves to the proving key data.
+ */
 async function fetchTimeLockPuzzleProvingKey() {
-  return await fetch(
-    "https://raw.githubusercontent.com/radiusxyz/pvde.js/main/public/data/time_lock_puzzle_zkp_proving_key.data",
-    {
-      method: "GET",
-    }
+  return fetch(
+    "https://raw.githubusercontent.com/radiusxyz/pvde.js/main/public/data/time_lock_puzzle_zkp_proving_key.data"
   ).then((res) => readStream(res));
 }
 
+/**
+ * Fetches time lock puzzle verifying key.
+ * @returns {Promise<Uint8Array>} A promise that resolves to the verifying key data.
+ */
 async function fetchTimeLockPuzzleVerifyingKey() {
-  return await fetch(
-    "https://raw.githubusercontent.com/radiusxyz/pvde.js/main/public/data/time_lock_puzzle_zkp_verifying_key.data",
-    {
-      method: "GET",
-    }
+  return fetch(
+    "https://raw.githubusercontent.com/radiusxyz/pvde.js/main/public/data/time_lock_puzzle_zkp_verifying_key.data"
   ).then((res) => readStream(res));
 }
 
+/**
+ * Generates parameters for a time lock puzzle.
+ * @returns {Promise<Object>} A promise that resolves to the generated time lock puzzle parameters.
+ */
 async function generateTimeLockPuzzleParam() {
   await ensureInitialized();
   const { y_two: yTwo, ...rest } = await generate_time_lock_puzzle_param(2048);
-
-  return {
-    ...rest,
-    yTwo,
-  };
+  return { ...rest, yTwo };
 }
 
+/**
+ * Generates a time lock puzzle with the given parameters.
+ * @param {Object} timeLockPuzzleParam - The parameters for generating the puzzle.
+ * @returns {Promise<Array>} A promise that resolves to an array containing puzzle data.
+ */
 async function generateTimeLockPuzzle(timeLockPuzzleParam) {
   await ensureInitialized();
-
   const { yTwo, ...rest } = timeLockPuzzleParam;
   const snakeCaseTimeLockPuzzleParam = { y_two: yTwo, ...rest };
   const inputs = await generate_time_lock_puzzle(snakeCaseTimeLockPuzzleParam);
   const { k_hash_value: kHashValue, k_two: kTwo, ...restInputs } = inputs[1];
-
-  return [
-    inputs[0],
-    {
-      kHashValue,
-      kTwo,
-      ...restInputs,
-    },
-  ];
+  return [inputs[0], { kHashValue, kTwo, ...restInputs }];
 }
 
+/**
+ * Generates a zero-knowledge proof for a time lock puzzle.
+ * @param {Uint8Array} timeLockPuzzleZkpParam - ZKP parameter data.
+ * @param {Uint8Array} timeLockPuzzleZkpProvingKey - ZKP proving key.
+ * @param {Object} timeLockPuzzlePublicInput - Public input data for the puzzle.
+ * @param {Object} timeLockPuzzleSecretInput - Secret input data for the puzzle.
+ * @param {Object} timeLockPuzzleParam - Parameters for the time lock puzzle.
+ * @returns {Promise<Object>} A promise that resolves to the generated proof.
+ */
 async function generateTimeLockPuzzleProof(
   timeLockPuzzleZkpParam,
   timeLockPuzzleZkpProvingKey,
@@ -98,28 +120,34 @@ async function generateTimeLockPuzzleProof(
   await ensureInitialized();
   const { kHashValue, kTwo, ...restTimeLockPuzzlePublicInput } =
     timeLockPuzzlePublicInput;
-
   const snakeCaseTimeLockPuzzlePublicInput = {
     k_hash_value: kHashValue,
     k_two: kTwo,
     ...restTimeLockPuzzlePublicInput,
   };
-
   const { yTwo, ...restTimeLockPuzzleParam } = timeLockPuzzleParam;
-  const snakeCaseTimeLockPuzleParam = {
+  const snakeCaseTimeLockPuzzleParam = {
     y_two: yTwo,
     ...restTimeLockPuzzleParam,
   };
-
-  return await prove_time_lock_puzzle(
+  return prove_time_lock_puzzle(
     timeLockPuzzleZkpParam,
     timeLockPuzzleZkpProvingKey,
     snakeCaseTimeLockPuzzlePublicInput,
-    timeLockPuzzleSecretInput, // time-lock puzzle secret input
-    snakeCaseTimeLockPuzleParam
+    timeLockPuzzleSecretInput,
+    snakeCaseTimeLockPuzzleParam
   );
 }
 
+/**
+ * Verifies a zero-knowledge proof for a time lock puzzle.
+ * @param {Uint8Array} timeLockPuzzleZkpParam - ZKP parameter data.
+ * @param {Uint8Array} timeLockPuzzleZkpVerifyingKey - ZKP verifying key.
+ * @param {Object} timeLockPuzzlePublicInput - Public input data for the puzzle.
+ * @param {Object} timeLockPuzzleParam - Parameters for the puzzle.
+ * @param {Object} timeLockPuzzleProof - Proof data for verification.
+ * @returns {Promise<boolean>} A promise that resolves to true if verification is successful.
+ */
 async function verifyTimeLockPuzzleProof(
   timeLockPuzzleZkpParam,
   timeLockPuzzleZkpVerifyingKey,
@@ -130,13 +158,11 @@ async function verifyTimeLockPuzzleProof(
   await ensureInitialized();
   const { kHashValue, kTwo, ...restTimeLockPuzzlePublicInput } =
     timeLockPuzzlePublicInput;
-
   const snakeCaseTimeLockPuzzlePublicInput = {
     k_hash_value: kHashValue,
     k_two: kTwo,
     ...restTimeLockPuzzlePublicInput,
   };
-
   const { yTwo, ...restTimeLockPuzzleParam } = timeLockPuzzleParam;
   const snakeCaseTimeLockPuzzleParam = {
     y_two: yTwo,
@@ -151,38 +177,55 @@ async function verifyTimeLockPuzzleProof(
   );
 }
 
+/**
+ * Fetches encryption zero-knowledge proof parameters.
+ * @returns {Promise<Uint8Array>} A promise that resolves to the encryption ZKP parameter data.
+ */
 async function fetchEncryptionZkpParam() {
-  return await fetch(
-    "https://raw.githubusercontent.com/radiusxyz/pvde.js/main/public/data/encryption_zkp_param.data",
-    {
-      method: "GET",
-    }
+  return fetch(
+    "https://raw.githubusercontent.com/radiusxyz/pvde.js/main/public/data/encryption_zkp_param.data"
   ).then((res) => readStream(res));
 }
 
+/**
+ * Fetches the encryption proving key.
+ * @returns {Promise<Uint8Array>} A promise that resolves to the encryption proving key data.
+ */
 async function fetchEncryptionProvingKey() {
-  return await fetch(
-    "https://raw.githubusercontent.com/radiusxyz/pvde.js/main/public/data/encryption_zkp_proving_key.data",
-    {
-      method: "GET",
-    }
+  return fetch(
+    "https://raw.githubusercontent.com/radiusxyz/pvde.js/main/public/data/encryption_zkp_proving_key.data"
   ).then((res) => readStream(res));
 }
 
+/**
+ * Fetches the encryption verifying key.
+ * @returns {Promise<Uint8Array>} A promise that resolves to the encryption verifying key data.
+ */
 async function fetchEncryptionVerifyingKey() {
-  return await fetch(
-    "https://raw.githubusercontent.com/radiusxyz/pvde.js/main/public/data/encryption_zkp_verifying_key.data",
-    {
-      method: "GET",
-    }
+  return fetch(
+    "https://raw.githubusercontent.com/radiusxyz/pvde.js/main/public/data/encryption_zkp_verifying_key.data"
   ).then((res) => readStream(res));
 }
 
+/**
+ * Encrypts a message with the given encryption key.
+ * @param {string} message - The plaintext message.
+ * @param {string} encryptionKey - The encryption key.
+ * @returns {Promise<string>} A promise that resolves to the encrypted message.
+ */
 async function encryptMessage(message, encryptionKey) {
   await ensureInitialized();
   return encrypt(message, encryptionKey);
 }
 
+/**
+ * Generates a zero-knowledge proof for encryption.
+ * @param {Uint8Array} encryptionZkpParam - Encryption ZKP parameters.
+ * @param {Uint8Array} encryptionProvingKey - Encryption proving key.
+ * @param {Object} encryptionPublicInput - Public input data for encryption.
+ * @param {Object} encryptionSecretInput - Secret input data for encryption.
+ * @returns {Promise<Object>} A promise that resolves to the generated proof.
+ */
 async function generateEncryptionProof(
   encryptionZkpParam,
   encryptionProvingKey,
@@ -191,12 +234,10 @@ async function generateEncryptionProof(
 ) {
   await ensureInitialized();
   const { encryptedData, kHashValue } = encryptionPublicInput;
-
   const snakeCaseEncryptionPublicInput = {
     encrypted_data: encryptedData,
     k_hash_value: kHashValue,
   };
-
   return prove_encryption(
     encryptionZkpParam,
     encryptionProvingKey,
@@ -205,6 +246,14 @@ async function generateEncryptionProof(
   );
 }
 
+/**
+ * Verifies a zero-knowledge proof for encryption.
+ * @param {Uint8Array} encryptionZkpParam - Encryption ZKP parameters.
+ * @param {Uint8Array} encryptionVerifyingKey - Encryption verifying key.
+ * @param {Object} encryptionPublicInput - Public input data for encryption.
+ * @param {Object} encryptionProof - Proof data for verification.
+ * @returns {Promise<boolean>} A promise that resolves to true if verification is successful.
+ */
 async function verifyEncryptionProof(
   encryptionZkpParam,
   encryptionVerifyingKey,
@@ -212,13 +261,11 @@ async function verifyEncryptionProof(
   encryptionProof
 ) {
   await ensureInitialized();
-
   const { encryptedData, kHashValue } = encryptionPublicInput;
   const snakeCaseEncryptionPublicInput = {
     encrypted_data: encryptedData,
     k_hash_value: kHashValue,
   };
-
   return verify_encryption_proof(
     encryptionZkpParam,
     encryptionVerifyingKey,
@@ -227,25 +274,40 @@ async function verifyEncryptionProof(
   );
 }
 
+/**
+ * Solves a time lock puzzle and retrieves the symmetric key.
+ * @param {Object} timeLockPuzzlePublicInput - Public input for the time lock puzzle.
+ * @param {Object} timeLockPuzzleParam - Parameters for the puzzle.
+ * @returns {Promise<string>} A promise that resolves to the symmetric key.
+ */
 async function solveTimeLockPuzzle(
   timeLockPuzzlePublicInput,
   timeLockPuzzleParam
 ) {
   await ensureInitialized();
-
-  const k = await solve_time_lock_puzzle(
+  return solve_time_lock_puzzle(
     timeLockPuzzlePublicInput.o,
     timeLockPuzzleParam.t,
     timeLockPuzzleParam.n
   );
-  return k;
 }
 
+/**
+ * Generates a symmetric key using a given value.
+ * @param {string} k - The input value.
+ * @returns {Promise<string>} A promise that resolves to the generated symmetric key.
+ */
 async function generateSymmetricKey(k) {
   await ensureInitialized();
-  return await generate_symmetric_key(k);
+  return generate_symmetric_key(k);
 }
 
+/**
+ * Decrypts a cipher using a symmetric key.
+ * @param {string} cipher - The encrypted message.
+ * @param {string} symmetricKey - The symmetric key.
+ * @returns {Promise<string>} A promise that resolves to the decrypted message.
+ */
 async function decryptCipher(cipher, symmetricKey) {
   await ensureInitialized();
   return decrypt(cipher, symmetricKey);
