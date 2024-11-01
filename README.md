@@ -28,10 +28,9 @@ This project provides `pvde` and `skde` modules, which facilitate secure cryptog
     - [Decrypting a Message](#decrypting-a-message-1)
 - [Dependencies](#dependencies)
   - [Required Parameter and Key Files](#required-parameter-and-key-files)
+- [Examples](#examples)
 
 --- 
-
-This Table of Contents now correctly links to each section and sub-section in your document.
 
 ## Installation
 
@@ -305,5 +304,15 @@ Ensure that the following files are available at the correct URLs or local paths
   - `encryption_verifying_key.data`
 
 These files are required to initialize and perform encryption and decryption operations within the module.
+
+---
+
+## Examples
+
+To see practical examples of using the `pvde` and `skde` modules, refer to the following scripts:
+
+- **Example 1**: [Time-Lock Puzzle and Proof Generation](https://gist.github.com/gylman/665f05de832478e46d08f583bacdbc40)  
+
+- **Example 2**: [SKDE Encryption and Decryption](https://gist.github.com/gylman/c32306321768d30d242258096be9c410)  
 
 ---
