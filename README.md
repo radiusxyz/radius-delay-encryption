@@ -37,7 +37,7 @@ await skde.ensureInitialized();
 
 ## Usage
 
-### Time-Lock Puzzle Operations (pvde)
+### Time-Lock Puzzle Operations
 
 The `pvde` module provides functionality for creating, proving, and verifying time-lock puzzles, enabling time-delayed decryption of messages with Zero-Knowledge Proof (ZKP) for security.
 
