@@ -277,7 +277,7 @@ async function verifyEncryptionProof(
  * Solves a time lock puzzle and retrieves the symmetric key.
  * @param {Object} timeLockPuzzlePublicInput - Public input for the time lock puzzle (see `generateTimeLockPuzzleProof`).
  * @param {Object} timeLockPuzzleParam - Parameters for the puzzle (see `generateTimeLockPuzzleParam`).
- * @returns {Promise<string>} A promise that resolves to the symmetric key as a string.
+ * @returns {Promise<Array>} A promise that resolves to the symmetric key as an array.
  */
 async function solveTimeLockPuzzle(
   timeLockPuzzlePublicInput,
@@ -293,8 +293,8 @@ async function solveTimeLockPuzzle(
 
 /**
  * Generates a symmetric key using a given value.
- * @param {string} k - The input value.
- * @returns {Promise<string>} A promise that resolves to the generated symmetric key as a string.
+ * @param {Array} k - The input value as an array.
+ * @returns {Promise<Array>} A promise that resolves to the generated symmetric key as an array of two arrays.
  */
 async function generateSymmetricKey(k) {
   await ensureInitialized();
@@ -304,7 +304,7 @@ async function generateSymmetricKey(k) {
 /**
  * Decrypts a cipher using a symmetric key.
  * @param {string} cipher - The encrypted message.
- * @param {string} symmetricKey - The symmetric key.
+ * @param {Array} symmetricKey - The symmetric key as an array of two arrays.
  * @returns {Promise<string>} A promise that resolves to the decrypted message as a string.
  */
 async function decryptCipher(cipher, symmetricKey) {
