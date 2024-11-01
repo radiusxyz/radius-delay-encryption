@@ -316,3 +316,9 @@ To see practical examples of using the `pvde` and `skde` modules, refer to the f
 - **Example 2**: [SKDE](https://gist.github.com/gylman/c32306321768d30d242258096be9c410)  
 
 ---
+
+# Contributing
+
+# Getting Help
+
+Help request
