@@ -37,6 +37,36 @@ await skde.ensureInitialized();
 
 ## Usage
 
+### PVDE
+
+### Initial Setup
+
+Before performing any time-lock puzzle or encryption operations, you need to fetch the Zero-Knowledge Proof (ZKP) parameters and keys. These are essential for generating and verifying proofs in both the time-lock puzzle and encryption processes.
+
+#### Fetching Required Parameters and Keys
+
+```javascript
+// Fetch Time-Lock Puzzle ZKP parameters and keys
+const timeLockPuzzleZkpParam = await pvde.fetchTimeLockPuzzleZkpParam();
+const timeLockPuzzleZkpProvingKey = await pvde.fetchTimeLockPuzzleProvingKey();
+const timeLockPuzzleZkpVerifyingKey = await pvde.fetchTimeLockPuzzleVerifyingKey();
+
+// Fetch Encryption ZKP parameters and keys
+const encryptionZkpParam = await pvde.fetchEncryptionZkpParam();
+const encryptionProvingKey = await pvde.fetchEncryptionProvingKey();
+const encryptionVerifyingKey = await pvde.fetchEncryptionVerifyingKey();
+```
+
+- **Purpose**: These parameters and keys are required for generating and verifying ZKPs.
+  - **Time-Lock Puzzle**:
+    - `timeLockPuzzleZkpParam`: ZKP parameter data for time-lock puzzles.
+    - `timeLockPuzzleZkpProvingKey`: Proving key for generating proofs.
+    - `timeLockPuzzleZkpVerifyingKey`: Verifying key for proof verification.
+  - **Encryption**:
+    - `encryptionZkpParam`: ZKP parameter data for encryption.
+    - `encryptionProvingKey`: Proving key for generating encryption proofs.
+    - `encryptionVerifyingKey`: Verifying key for proof verification.
+
 ### Time-Lock Puzzle Operations
 
 The `pvde` module provides functionality for creating, proving, and verifying time-lock puzzles, enabling time-delayed decryption of messages with Zero-Knowledge Proof (ZKP) for security.
