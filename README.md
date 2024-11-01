@@ -1,4 +1,4 @@
-# Cryptographic Modules
+# Radius Delay Encryption modules (PVDE and SKDE)
 
 This project provides `pvde` and `skde` modules, which facilitate secure cryptographic operations, including time-lock puzzle generation, proof generation and verification, symmetric key encryption and decryption, and more. These modules leverage WebAssembly (Wasm) for efficient cryptographic computations.
 
@@ -7,11 +7,31 @@ This project provides `pvde` and `skde` modules, which facilitate secure cryptog
 - [Installation](#installation)
 - [Initialization](#initialization)
 - [Usage](#usage)
-  - [Time-Lock Puzzle Operations (pvde)](#time-lock-puzzle-operations-pvde)
-  - [Encryption Operations (pvde)](#encryption-operations-pvde)
-  - [SKDE Encryption and Decryption](#skde-encryption-and-decryption)
+  - [PVDE](#pvde)
+    - [Initial Setup](#initial-setup)
+    - [Fetching Required Parameters and Keys](#fetching-required-parameters-and-keys)
+    - [Time-Lock Puzzle Operations](#time-lock-puzzle-operations)
+      - [Generating Time-Lock Puzzle Parameters](#generating-time-lock-puzzle-parameters)
+      - [Creating a Time-Lock Puzzle](#creating-a-time-lock-puzzle)
+      - [Generating a Time-Lock Puzzle Proof](#generating-a-time-lock-puzzle-proof)
+      - [Verifying a Time-Lock Puzzle Proof](#verifying-a-time-lock-puzzle-proof)
+      - [Solving a Time-Lock Puzzle](#solving-a-time-lock-puzzle)
+    - [Encryption Operations](#encryption-operations)
+      - [Generating a Symmetric Key](#generating-a-symmetric-key)
+      - [Encrypting a Message](#encrypting-a-message)
+      - [Generating an Encryption Proof](#generating-an-encryption-proof)
+      - [Verifying an Encryption Proof](#verifying-an-encryption-proof)
+      - [Decrypting a Message](#decrypting-a-message)
+  - [SKDE](#skde)
+    - [Initial Setup](#initial-setup-1)
+    - [Encrypting a Message](#encrypting-a-message-1)
+    - [Decrypting a Message](#decrypting-a-message-1)
 - [Dependencies](#dependencies)
-- [License](#license)
+  - [Required Parameter and Key Files](#required-parameter-and-key-files)
+
+--- 
+
+This Table of Contents now correctly links to each section and sub-section in your document.
 
 ## Installation
 
