@@ -29,6 +29,8 @@ This project provides `pvde` and `skde` modules, which facilitate secure cryptog
 - [Dependencies](#dependencies)
   - [Required Parameter and Key Files](#required-parameter-and-key-files)
 - [Examples](#examples)
+- [Contributing](#contributing)
+- [Getting Help](#getting-help)
 
 --- 
 
