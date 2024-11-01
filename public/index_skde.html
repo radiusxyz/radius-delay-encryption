@@ -11,7 +11,6 @@
 
       async function runWasm() {
         try {
-          console.log(skde);
           const skde_params = {
             n: "109108784166676529682340577929498188950239585527883687884827626040722072371127456712391033422811328348170518576414206624244823392702116014678887602655605057984874271545556188865755301275371611259397284800785551682318694176857633188036311000733221068448165870969366710007572931433736793827320953175136545355129",
             g: "4",
@@ -34,13 +33,11 @@
             message,
             encryption_key
           );
-          console.log("Encrypted Message:", cipherMessage);
           const decrypted = await skde.decryptCipher(
             skde_params,
             cipherMessage,
             decryption_key
           );
-          console.log("Decrypted Message:", decrypted);
         } catch (error) {
           console.error("An error occurred during encryption:", error);
         }

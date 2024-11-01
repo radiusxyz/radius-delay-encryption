@@ -56,20 +56,8 @@
       // 2. Generate time-lock puzzle
       const timeLockPuzzle = await generateTimeLockPuzzle(timeLockPuzzleParam);
 
-      console.log("timeLockPuzzleParam", timeLockPuzzleParam);
-      console.log("timeLockPuzzleZkpParam", timeLockPuzzleZkpParam);
-      console.log("timeLockPuzzleZkpProvingKey", timeLockPuzzleZkpProvingKey);
-      console.log(
-        "timeLockPuzzleZkpVerifyingKey",
-        timeLockPuzzleZkpVerifyingKey
-      );
-      console.log("timeLockPuzzle", timeLockPuzzle);
-
       const [timeLockPuzzleSecretInput, timeLockPuzzlePublicInput] =
         timeLockPuzzle;
-
-      console.log("timeLockPuzzleSecretInput", timeLockPuzzleSecretInput);
-      console.log("timeLockPuzzlePublicInput", timeLockPuzzlePublicInput);
 
       // 3. Generate zk-proof for the validity of time-lock puzzle
       const timeLockPuzzleProof = await generateTimeLockPuzzleProof(
@@ -79,7 +67,6 @@
         timeLockPuzzleSecretInput, // time-lock puzzle secret input
         timeLockPuzzleParam
       );
-      console.log("timeLockPuzzleProof", timeLockPuzzleProof);
 
       // 4. Verify time-lock puzzle proof
       const isTimeLockPuzzleVerified = await verifyTimeLockPuzzleProof(
@@ -102,32 +89,22 @@
 
       const message = "Hello World";
 
-      console.log("encryptionZkpParam", encryptionZkpParam);
-      console.log("encryptionProvingKey", encryptionProvingKey);
-      console.log("encryptionVerifyingKey", encryptionVerifyingKey);
-
       // 1. Encryption
       const encryptionKey = await generateSymmetricKey(
         timeLockPuzzleSecretInput.k
       );
-      console.log("encryptionKey", encryptionKey);
 
       const cipher = await encryptMessage(message, encryptionKey);
-
-      console.log("cipher", cipher);
 
       const encryptionPublicInput = {
         encryptedData: cipher,
         kHashValue: timeLockPuzzlePublicInput.kHashValue,
       };
 
-      console.log("encryptionPublicInput", encryptionPublicInput);
-
       const encryptionSecretInput = {
         data: message,
         k: timeLockPuzzleSecretInput.k,
       };
-      console.log("encryptionSecretInput", encryptionSecretInput);
 
       // 2. Prove encryption
       const encryptionProof = await generateEncryptionProof(
@@ -136,8 +113,6 @@
         encryptionPublicInput,
         encryptionSecretInput
       );
-
-      console.log("encryptionProof", encryptionProof);
 
       // 3. Verify encryption proof
       const isEncryptionProofVerified = await verifyEncryptionProof(
@@ -153,99 +128,10 @@
         timeLockPuzzleParam
       );
 
-      console.log("k", k);
-
       const decryptionKey = await generateSymmetricKey(k);
-
-      console.log("decryptionKey", decryptionKey);
 
       // 5. Decryption
       const decryptedMessage = decryptCipher(cipher, decryptionKey);
     </script>
   </body>
 </html>
-
-<!-- 
-time-lock puzzle param 
-  {
-    g: [],
-    n:[],
-    t: Number,
-    y: [],
-    yTwo: []
-  }
-
-time-lock puzzle zkp param 
-
-    Uint8Array()
-
-
-time-lock puzzle proving key 
-
-    Uint8Array()
-
-timeLockPuzzle 
-  [
-    {
-      k: []
-    },
-    {
-      kHashValue: [],
-      kTwo: [], 
-      o: [],
-      r1: [], 
-      r2: [], 
-      z: []
-    }
-  ]
-
-timeLockPuzzleSecretInput 
-  {
-    k: []
-  }
-
-timeLockPuzzlePublicInput 
-  {
-    kHashValue: [[],[]]
-    kTwo: [], 
-    o: [],
-    r1: [], 
-    r2: [], 
-    z: []
-  }
-
-timeLockPuzzleProof 
-  []
-
-encryptionZkpParam
-  []
-
-encryptionProvingKey 
-  []
-
-encryptionVerifyingKey 
-  []
-
-encryptionKey
- [[],[]]
-
-
-cipher
-  String
-
-encryptionPublicInput 
-  {
-    encryptedData: String,
-    kHashValue: [[],[]]
-  }
-
-encryptionSecretInput 
-
-  {
-    data: String,
-    k: []
-  }
-
-encryptionProof 
-    []
--->
