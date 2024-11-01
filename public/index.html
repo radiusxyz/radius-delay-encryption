@@ -2,81 +2,250 @@
 <html lang="en-US">
   <head>
     <meta charset="utf-8" />
-    <title>Delay encryption in wasm</title>
+    <title>PVDE in wasm</title>
   </head>
 
   <body>
     <script type="module">
       import { pvde, skde } from "../src/index.js";
+      const {
+        fetchTimeLockPuzzleZkpParam,
+        fetchTimeLockPuzzleProvingKey,
+        fetchTimeLockPuzzleVerifyingKey,
+        generateTimeLockPuzzleParam,
+        generateTimeLockPuzzle,
+        generateTimeLockPuzzleProof,
+        verifyTimeLockPuzzleProof,
+        fetchEncryptionZkpParam,
+        fetchEncryptionProvingKey,
+        fetchEncryptionVerifyingKey,
+        generateSymmetricKey,
+        encryptMessage,
+        generateEncryptionProof,
+        verifyEncryptionProof,
+        solveTimeLockPuzzle,
+        decryptCipher,
+      } = pvde;
 
-      async function runWasm() {
-        try {
-          console.log(skde);
-          const skde_params = {
-            n: "109108784166676529682340577929498188950239585527883687884827626040722072371127456712391033422811328348170518576414206624244823392702116014678887602655605057984874271545556188865755301275371611259397284800785551682318694176857633188036311000733221068448165870969366710007572931433736793827320953175136545355129",
-            g: "4",
-            t: 4,
-            h: "4294967296",
-            max_sequencer_number: "2",
-          };
-
-          const message =
-            "0xf869018203e882520894f17f52151ebef6c7334fad080c5704d77216b732881bc16d674ec80000801ba02da1c48b670996dcb1f447ef9ef00b33033c48a4fe";
-          const encryption_key = {
-            pk: "27897411317866240410600830526788165981341969904039758194675272671868652866892274441298243014317800177611419642993059565060538386730472765976439751299066279239018615809165217144853299923809516494049479159549907327351509242281465077907977695359158281231729142725042643997952251325328973964444619144348848423785",
-          };
-          const decryption_key = {
-            sk: "38833048300325516141445839739644018404110477961707775037115236576780421892476578378034582536195146817009345764092161668346878367282186498795101059094681709712929905024483143171658282800283336368593335787557451643648363431385562973837024404466434120134771798848006526362428133799287842185760112952945802615179",
-          };
-
-          const cipherMessage = await skde.encryptMessage(
-            skde_params,
-            message,
-            encryption_key
-          );
-          console.log("Encrypted Message:", cipherMessage);
-          const decrypted = await skde.decryptCipher(
-            skde_params,
-            cipherMessage,
-            decryption_key
-          );
-          console.log("Decrypted Message:", decrypted);
-        } catch (error) {
-          console.error("An error occurred during encryption:", error);
-        }
+      function uint8ArrayToHex(uint8Array) {
+        return Array.from(uint8Array, (byte) =>
+          byte.toString(16).padStart(2, "0")
+        ).join("");
       }
 
-      runWasm();
+      async function readStream(res) {
+        const bytes = await res.arrayBuffer();
+        const uint8bytes = new Uint8Array(bytes);
+        // const string = uint8ArrayToHex(uint8bytes);
+        return uint8bytes;
+      }
+
+      // Load time-lock puzzle zkp param and keys
+      // Get time-lock puzzle zkp param
+      let timeLockPuzzleZkpParam = await fetchTimeLockPuzzleZkpParam();
+
+      // Get time-lock puzzle proving_key
+      let timeLockPuzzleZkpProvingKey = await fetchTimeLockPuzzleProvingKey();
+      // Get time-lock puzzle verifying key
+      let timeLockPuzzleZkpVerifyingKey =
+        await fetchTimeLockPuzzleVerifyingKey();
+
+      // 1. Generate time-lock puzzle param
+      const timeLockPuzzleParam = await generateTimeLockPuzzleParam();
+
+      // 2. Generate time-lock puzzle
+      const timeLockPuzzle = await generateTimeLockPuzzle(timeLockPuzzleParam);
+
+      console.log("timeLockPuzzleParam", timeLockPuzzleParam);
+      console.log("timeLockPuzzleZkpParam", timeLockPuzzleZkpParam);
+      console.log("timeLockPuzzleZkpProvingKey", timeLockPuzzleZkpProvingKey);
+      console.log(
+        "timeLockPuzzleZkpVerifyingKey",
+        timeLockPuzzleZkpVerifyingKey
+      );
+      console.log("timeLockPuzzle", timeLockPuzzle);
+
+      const [timeLockPuzzleSecretInput, timeLockPuzzlePublicInput] =
+        timeLockPuzzle;
+
+      console.log("timeLockPuzzleSecretInput", timeLockPuzzleSecretInput);
+      console.log("timeLockPuzzlePublicInput", timeLockPuzzlePublicInput);
+
+      // 3. Generate zk-proof for the validity of time-lock puzzle
+      const timeLockPuzzleProof = await generateTimeLockPuzzleProof(
+        timeLockPuzzleZkpParam,
+        timeLockPuzzleZkpProvingKey,
+        timeLockPuzzlePublicInput,
+        timeLockPuzzleSecretInput, // time-lock puzzle secret input
+        timeLockPuzzleParam
+      );
+      console.log("timeLockPuzzleProof", timeLockPuzzleProof);
+
+      // 4. Verify time-lock puzzle proof
+      const isTimeLockPuzzleVerified = await verifyTimeLockPuzzleProof(
+        timeLockPuzzleZkpParam,
+        timeLockPuzzleZkpVerifyingKey,
+        timeLockPuzzlePublicInput,
+        timeLockPuzzleParam,
+        timeLockPuzzleProof
+      );
+
+      // Load encryption zkp param and keys
+      // Get encryption zkp param
+      let encryptionZkpParam = await fetchEncryptionZkpParam();
+
+      // Get encryption proving_key
+      let encryptionProvingKey = await fetchEncryptionProvingKey();
+
+      // Get encryption verifying key
+      let encryptionVerifyingKey = await fetchEncryptionVerifyingKey();
+
+      const message = "Hello World";
+
+      console.log("encryptionZkpParam", encryptionZkpParam);
+      console.log("encryptionProvingKey", encryptionProvingKey);
+      console.log("encryptionVerifyingKey", encryptionVerifyingKey);
+
+      // 1. Encryption
+      const encryptionKey = await generateSymmetricKey(
+        timeLockPuzzleSecretInput.k
+      );
+      console.log("encryptionKey", encryptionKey);
+
+      const cipher = await encryptMessage(message, encryptionKey);
+
+      console.log("cipher", cipher);
+
+      const encryptionPublicInput = {
+        encryptedData: cipher,
+        kHashValue: timeLockPuzzlePublicInput.kHashValue,
+      };
+
+      console.log("encryptionPublicInput", encryptionPublicInput);
+
+      const encryptionSecretInput = {
+        data: message,
+        k: timeLockPuzzleSecretInput.k,
+      };
+      console.log("encryptionSecretInput", encryptionSecretInput);
+
+      // 2. Prove encryption
+      const encryptionProof = await generateEncryptionProof(
+        encryptionZkpParam,
+        encryptionProvingKey,
+        encryptionPublicInput,
+        encryptionSecretInput
+      );
+
+      console.log("encryptionProof", encryptionProof);
+
+      // 3. Verify encryption proof
+      const isEncryptionProofVerified = await verifyEncryptionProof(
+        encryptionZkpParam,
+        encryptionVerifyingKey,
+        encryptionPublicInput,
+        encryptionProof
+      );
+
+      // 4. Get decryption key
+      const k = await solveTimeLockPuzzle(
+        timeLockPuzzlePublicInput,
+        timeLockPuzzleParam
+      );
+
+      console.log("k", k);
+
+      const decryptionKey = await generateSymmetricKey(k);
+
+      console.log("decryptionKey", decryptionKey);
+
+      // 5. Decryption
+      const decryptedMessage = decryptCipher(cipher, decryptionKey);
     </script>
   </body>
 </html>
 
-<!--
-let skde_params = SkdeParams {
-    n: BigUint::from_str("109108784166676529682340577929498188950239585527883687884827626040722072371127456712391033422811328348170518576414206624244823392702116014678887602655605057984874271545556188865755301275371611259397284800785551682318694176857633188036311000733221068448165870969366710007572931433736793827320953175136545355129").unwrap(),
-    g: BigUint::from(4u32),
-    t: 4,
-    h: BigUint::from_str("4294967296").unwrap(),
-    max_sequencer_number: BigUint::from_str("2").unwrap(),
-};
-
-let message = "0xf869018203e882520894f17f52151ebef6c7334fad080c5704d77216b732881bc16d674ec80000801ba02da1c48b670996dcb1f447ef9ef00b33033c48a4fe";
-
-let encryption_key = PublicKey {
-    pk: BigUint::from_str("27897411317866240410600830526788165981341969904039758194675272671868652866892274441298243014317800177611419642993059565060538386730472765976439751299066279239018615809165217144853299923809516494049479159549907327351509242281465077907977695359158281231729142725042643997952251325328973964444619144348848423785").unwrap(),
-}; -->
-
 <!-- 
-let skde_params = SkdeParams {
-  n: BigUint::from_str("109108784166676529682340577929498188950239585527883687884827626040722072371127456712391033422811328348170518576414206624244823392702116014678887602655605057984874271545556188865755301275371611259397284800785551682318694176857633188036311000733221068448165870969366710007572931433736793827320953175136545355129").unwrap(),
-  g: BigUint::from(4u32),
-  t: 4,
-  h: BigUint::from_str("4294967296").unwrap(),
-  max_sequencer_number: BigUint::from_str("2").unwrap(),
-};
+time-lock puzzle param 
+  {
+    g: [],
+    n:[],
+    t: Number,
+    y: [],
+    yTwo: []
+  }
 
-let ciphertext = "0x010000000000000020000000000000009f334447e3afdda48a1244e2680e14b9b2cacfeb07b81d2a46fffd9aef265477f68458d843b980d367dfa40b65ed770c5585562db0f1fd4e402671720003b8106fba48561863bd16f21c2968d1225a5ab846d787751ef5dcb0fe795cb28b237671558a7be7c7f8b79f6a58c5039fd950f8fdee6072d78a5a242dcccc380ba72220000000000000004ebb09d8e18896954d85178299497df7a75b2455719a9d4544f0fce237d6d6695c44c5a1f9b5155e134710777ee76f2758db461112b4ef4c5289906dbf1d52ecd1dad43c86e0b99ff395b5557580da7b5c1822837315a26fc560deb074e354d3065fd1e968c594e23297408c983a2cf98160e09ed8dc65a3bd50e769ffb6740f"; // Example encrypted message
+time-lock puzzle zkp param 
 
-let decryption_key = SecretKey {
-  sk: BigUint::from_str("38833048300325516141445839739644018404110477961707775037115236576780421892476578378034582536195146817009345764092161668346878367282186498795101059094681709712929905024483143171658282800283336368593335787557451643648363431385562973837024404466434120134771798848006526362428133799287842185760112952945802615179").unwrap(),
-}; -->
+    Uint8Array()
+
+
+time-lock puzzle proving key 
+
+    Uint8Array()
+
+timeLockPuzzle 
+  [
+    {
+      k: []
+    },
+    {
+      kHashValue: [],
+      kTwo: [], 
+      o: [],
+      r1: [], 
+      r2: [], 
+      z: []
+    }
+  ]
+
+timeLockPuzzleSecretInput 
+  {
+    k: []
+  }
+
+timeLockPuzzlePublicInput 
+  {
+    kHashValue: [[],[]]
+    kTwo: [], 
+    o: [],
+    r1: [], 
+    r2: [], 
+    z: []
+  }
+
+timeLockPuzzleProof 
+  []
+
+encryptionZkpParam
+  []
+
+encryptionProvingKey 
+  []
+
+encryptionVerifyingKey 
+  []
+
+encryptionKey
+ [[],[]]
+
+
+cipher
+  String
+
+encryptionPublicInput 
+  {
+    encryptedData: String,
+    kHashValue: [[],[]]
+  }
+
+encryptionSecretInput 
+
+  {
+    data: String,
+    k: []
+  }
+
+encryptionProof 
+    []
+-->

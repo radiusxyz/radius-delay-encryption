@@ -79,7 +79,12 @@ async function fetchTimeLockPuzzleVerifyingKey() {
 
 /**
  * Generates parameters for a time lock puzzle.
- * @returns {Promise<Object>} A promise that resolves to the generated time lock puzzle parameters.
+ * @returns {Promise<Object>} A promise that resolves to the generated time lock puzzle parameters, which includes:
+ *   - g (Array): array of values for generator.
+ *   - n (Array): array representing modulus.
+ *   - t (Number): the time parameter.
+ *   - y (Array): array representing the result of exponentiation.
+ *   - yTwo (Array): second array for y values.
  */
 async function generateTimeLockPuzzleParam() {
   await ensureInitialized();
@@ -89,8 +94,21 @@ async function generateTimeLockPuzzleParam() {
 
 /**
  * Generates a time lock puzzle with the given parameters.
- * @param {Object} timeLockPuzzleParam - The parameters for generating the puzzle.
- * @returns {Promise<Array>} A promise that resolves to an array containing puzzle data.
+ * @param {Object} timeLockPuzzleParam - The parameters for generating the puzzle, including:
+ *   - g (Array)
+ *   - n (Array)
+ *   - t (Number)
+ *   - y (Array)
+ *   - yTwo (Array)
+ * @returns {Promise<Array>} A promise that resolves to an array containing puzzle data:
+ *   - First item: object with a key `k` (Array).
+ *   - Second item: object containing values:
+ *     - kHashValue (Array)
+ *     - kTwo (Array)
+ *     - o (Array)
+ *     - r1 (Array)
+ *     - r2 (Array)
+ *     - z (Array)
  */
 async function generateTimeLockPuzzle(timeLockPuzzleParam) {
   await ensureInitialized();
@@ -103,12 +121,19 @@ async function generateTimeLockPuzzle(timeLockPuzzleParam) {
 
 /**
  * Generates a zero-knowledge proof for a time lock puzzle.
- * @param {Uint8Array} timeLockPuzzleZkpParam - ZKP parameter data.
- * @param {Uint8Array} timeLockPuzzleZkpProvingKey - ZKP proving key.
- * @param {Object} timeLockPuzzlePublicInput - Public input data for the puzzle.
- * @param {Object} timeLockPuzzleSecretInput - Secret input data for the puzzle.
- * @param {Object} timeLockPuzzleParam - Parameters for the time lock puzzle.
- * @returns {Promise<Object>} A promise that resolves to the generated proof.
+ * @param {Uint8Array} timeLockPuzzleZkpParam - ZKP parameter data as Uint8Array.
+ * @param {Uint8Array} timeLockPuzzleZkpProvingKey - ZKP proving key as Uint8Array.
+ * @param {Object} timeLockPuzzlePublicInput - Public input data for the puzzle, including:
+ *   - kHashValue (Array)
+ *   - kTwo (Array)
+ *   - o (Array)
+ *   - r1 (Array)
+ *   - r2 (Array)
+ *   - z (Array)
+ * @param {Object} timeLockPuzzleSecretInput - Secret input data for the puzzle, containing:
+ *   - k (Array)
+ * @param {Object} timeLockPuzzleParam - Parameters for the time lock puzzle (see `generateTimeLockPuzzleParam`).
+ * @returns {Promise<Object>} A promise that resolves to the generated proof, formatted as an object.
  */
 async function generateTimeLockPuzzleProof(
   timeLockPuzzleZkpParam,
@@ -141,11 +166,11 @@ async function generateTimeLockPuzzleProof(
 
 /**
  * Verifies a zero-knowledge proof for a time lock puzzle.
- * @param {Uint8Array} timeLockPuzzleZkpParam - ZKP parameter data.
- * @param {Uint8Array} timeLockPuzzleZkpVerifyingKey - ZKP verifying key.
- * @param {Object} timeLockPuzzlePublicInput - Public input data for the puzzle.
- * @param {Object} timeLockPuzzleParam - Parameters for the puzzle.
- * @param {Object} timeLockPuzzleProof - Proof data for verification.
+ * @param {Uint8Array} timeLockPuzzleZkpParam - ZKP parameter data as Uint8Array.
+ * @param {Uint8Array} timeLockPuzzleZkpVerifyingKey - ZKP verifying key as Uint8Array.
+ * @param {Object} timeLockPuzzlePublicInput - Public input data for the puzzle (see `generateTimeLockPuzzleProof`).
+ * @param {Object} timeLockPuzzleParam - Parameters for the puzzle (see `generateTimeLockPuzzleParam`).
+ * @param {Object} timeLockPuzzleProof - Proof data for verification (Array).
  * @returns {Promise<boolean>} A promise that resolves to true if verification is successful.
  */
 async function verifyTimeLockPuzzleProof(
@@ -178,40 +203,10 @@ async function verifyTimeLockPuzzleProof(
 }
 
 /**
- * Fetches encryption zero-knowledge proof parameters.
- * @returns {Promise<Uint8Array>} A promise that resolves to the encryption ZKP parameter data.
- */
-async function fetchEncryptionZkpParam() {
-  return fetch(
-    "https://raw.githubusercontent.com/radiusxyz/pvde.js/main/public/data/encryption_zkp_param.data"
-  ).then((res) => readStream(res));
-}
-
-/**
- * Fetches the encryption proving key.
- * @returns {Promise<Uint8Array>} A promise that resolves to the encryption proving key data.
- */
-async function fetchEncryptionProvingKey() {
-  return fetch(
-    "https://raw.githubusercontent.com/radiusxyz/pvde.js/main/public/data/encryption_zkp_proving_key.data"
-  ).then((res) => readStream(res));
-}
-
-/**
- * Fetches the encryption verifying key.
- * @returns {Promise<Uint8Array>} A promise that resolves to the encryption verifying key data.
- */
-async function fetchEncryptionVerifyingKey() {
-  return fetch(
-    "https://raw.githubusercontent.com/radiusxyz/pvde.js/main/public/data/encryption_zkp_verifying_key.data"
-  ).then((res) => readStream(res));
-}
-
-/**
  * Encrypts a message with the given encryption key.
  * @param {string} message - The plaintext message.
  * @param {string} encryptionKey - The encryption key.
- * @returns {Promise<string>} A promise that resolves to the encrypted message.
+ * @returns {Promise<string>} A promise that resolves to the encrypted message as a string.
  */
 async function encryptMessage(message, encryptionKey) {
   await ensureInitialized();
@@ -220,10 +215,14 @@ async function encryptMessage(message, encryptionKey) {
 
 /**
  * Generates a zero-knowledge proof for encryption.
- * @param {Uint8Array} encryptionZkpParam - Encryption ZKP parameters.
- * @param {Uint8Array} encryptionProvingKey - Encryption proving key.
- * @param {Object} encryptionPublicInput - Public input data for encryption.
- * @param {Object} encryptionSecretInput - Secret input data for encryption.
+ * @param {Uint8Array} encryptionZkpParam - Encryption ZKP parameters as Uint8Array.
+ * @param {Uint8Array} encryptionProvingKey - Encryption proving key as Uint8Array.
+ * @param {Object} encryptionPublicInput - Public input data for encryption, containing:
+ *   - encryptedData (string)
+ *   - kHashValue (Array)
+ * @param {Object} encryptionSecretInput - Secret input data for encryption, containing:
+ *   - data (string)
+ *   - k (Array)
  * @returns {Promise<Object>} A promise that resolves to the generated proof.
  */
 async function generateEncryptionProof(
@@ -248,10 +247,10 @@ async function generateEncryptionProof(
 
 /**
  * Verifies a zero-knowledge proof for encryption.
- * @param {Uint8Array} encryptionZkpParam - Encryption ZKP parameters.
- * @param {Uint8Array} encryptionVerifyingKey - Encryption verifying key.
- * @param {Object} encryptionPublicInput - Public input data for encryption.
- * @param {Object} encryptionProof - Proof data for verification.
+ * @param {Uint8Array} encryptionZkpParam - Encryption ZKP parameters as Uint8Array.
+ * @param {Uint8Array} encryptionVerifyingKey - Encryption verifying key as Uint8Array.
+ * @param {Object} encryptionPublicInput - Public input data for encryption (see `generateEncryptionProof`).
+ * @param {Object} encryptionProof - Proof data for verification (Array).
  * @returns {Promise<boolean>} A promise that resolves to true if verification is successful.
  */
 async function verifyEncryptionProof(
@@ -276,9 +275,9 @@ async function verifyEncryptionProof(
 
 /**
  * Solves a time lock puzzle and retrieves the symmetric key.
- * @param {Object} timeLockPuzzlePublicInput - Public input for the time lock puzzle.
- * @param {Object} timeLockPuzzleParam - Parameters for the puzzle.
- * @returns {Promise<string>} A promise that resolves to the symmetric key.
+ * @param {Object} timeLockPuzzlePublicInput - Public input for the time lock puzzle (see `generateTimeLockPuzzleProof`).
+ * @param {Object} timeLockPuzzleParam - Parameters for the puzzle (see `generateTimeLockPuzzleParam`).
+ * @returns {Promise<string>} A promise that resolves to the symmetric key as a string.
  */
 async function solveTimeLockPuzzle(
   timeLockPuzzlePublicInput,
@@ -295,7 +294,7 @@ async function solveTimeLockPuzzle(
 /**
  * Generates a symmetric key using a given value.
  * @param {string} k - The input value.
- * @returns {Promise<string>} A promise that resolves to the generated symmetric key.
+ * @returns {Promise<string>} A promise that resolves to the generated symmetric key as a string.
  */
 async function generateSymmetricKey(k) {
   await ensureInitialized();
@@ -306,7 +305,7 @@ async function generateSymmetricKey(k) {
  * Decrypts a cipher using a symmetric key.
  * @param {string} cipher - The encrypted message.
  * @param {string} symmetricKey - The symmetric key.
- * @returns {Promise<string>} A promise that resolves to the decrypted message.
+ * @returns {Promise<string>} A promise that resolves to the decrypted message as a string.
  */
 async function decryptCipher(cipher, symmetricKey) {
   await ensureInitialized();
