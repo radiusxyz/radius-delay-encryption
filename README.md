@@ -311,8 +311,8 @@ These files are required to initialize and perform encryption and decryption ope
 
 To see practical examples of using the `pvde` and `skde` modules, refer to the following scripts:
 
-- **Example 1**: [Time-Lock Puzzle and Proof Generation](https://gist.github.com/gylman/665f05de832478e46d08f583bacdbc40)  
+- **Example 1**: [PVDE](https://gist.github.com/gylman/665f05de832478e46d08f583bacdbc40)  
 
-- **Example 2**: [SKDE Encryption and Decryption](https://gist.github.com/gylman/c32306321768d30d242258096be9c410)  
+- **Example 2**: [SKDE](https://gist.github.com/gylman/c32306321768d30d242258096be9c410)  
 
 ---
