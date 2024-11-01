@@ -139,7 +139,7 @@ const symmetricKey = await pvde.solveTimeLockPuzzle(
 
 - **Output**: The symmetric key, returned as an array of two arrays, for encryption or decryption operations.
 
-### Encryption Operations (pvde)
+### Encryption Operations
 
 This module also supports encryption and decryption using the generated symmetric key, as well as ZKP generation and verification for encrypted messages to ensure data integrity and confidentiality.
 
@@ -211,31 +211,79 @@ const decryptedMessage = await pvde.decryptCipher(
 
 ---
 
-#### Decrypting a Message (skde)
+### SKDE
 
-Decrypt an encrypted message with `skde` using the appropriate parameters and secret key:
+### Initial Setup
+
+Before performing encryption, decryption operations, you need to fetch parameters and keys.
+
+#### Encrypting a Message
+
+The `skde` module enables encrypting messages with specified cryptographic parameters and a public encryption key. Ensure that the WebAssembly module is initialized before attempting encryption.
+
+**Usage Example:**
 
 ```javascript
-const decryptedMessage = await skde.decryptCipher(
-  skdeParams,
-  cipherText,
-  secretKey
+const cipherText = await skde.encryptMessage(
+  skdeParams,      // Cryptographic parameters required for encryption
+  message,         // Plaintext message to encrypt, in hex string format
+  encryptionKey    // Object containing the public encryption key
 );
 ```
 
+- **`skdeParams`**: An object containing the following cryptographic parameters for encryption:
+  - `n` (string): A large modulus used in cryptographic calculations, represented as a string.
+  - `g` (string): The generator value, serving as a base for cryptographic operations.
+  - `t` (number): The time factor, which introduces a delay or difficulty in the encryption process.
+  - `h` (string): An additional large integer parameter used in modular arithmetic.
+  - `max_sequencer_number` (string): A constraint on the maximum sequence number.
+
+- **`message`**: The plaintext message to encrypt, represented as a hex string.
+
+- **`encryptionKey`**: An object containing the public key:
+  - `pk` (string): The public encryption key, which is used to encrypt the message.
+
+#### Decrypting a Message
+
+The `skde` module also enables decrypting an encrypted message using cryptographic parameters and a secret decryption key. Ensure that the module is initialized and configured with the appropriate parameters and keys.
+
+**Usage Example:**
+
+```javascript
+const decryptedMessage = await skde.decryptCipher(
+  skdeParams,   // Cryptographic parameters for decryption
+  cipherText,   // The encrypted message in hex string format
+  secretKey     // Object containing the secret key for decryption
+);
+```
+
+- **`skdeParams`**: The same cryptographic parameters object as used in encryption.
+- **`cipherText`**: The encrypted message to decrypt, provided as a hex string.
+- **`secretKey`**: An object containing the private `sk` (string), which is the secret key used to decrypt the `cipherText`.
+
+---
+
 ## Dependencies
 
-This project relies on the following:
+This project relies on the following components:
 
-- WebAssembly (Wasm) modules for cryptographic operations.
-- Fetch API for downloading cryptographic parameters and keys.
+- **WebAssembly (Wasm) Modules**: Provides efficient and secure cryptographic operations for both encryption and decryption processes.
+- **Fetch API**: Used to download cryptographic parameters and key files necessary for encryption and decryption.
 
-Ensure that the necessary parameter and key files are available at the correct URLs or local paths specified in the code:
+### Required Parameter and Key Files
 
-- `time_lock_puzzle_zkp_param.data`
-- `time_lock_puzzle_zkp_proving_key.data`
-- `time_lock_puzzle_zkp_verifying_key.data`
-- `encryption_zkp_param.data`
-- `encryption_zkp_proving_key.data`
-- `encryption_zkp_verifying_key.data`
+Ensure that the following files are available at the correct URLs or local paths, as they contain essential cryptographic parameters and keys:
+
+- **For Time-Lock Puzzle**:
+  - `time_lock_puzzle_zkp_param.data`
+  - `time_lock_puzzle_zkp_proving_key.data`
+  - `time_lock_puzzle_zkp_verifying_key.data`
+
+- **For Encryption**:
+  - `encryption_zkp_param.data`
+  - `encryption_proving_key.data`
+  - `encryption_verifying_key.data`
+
+These files are required to initialize and perform encryption and decryption operations within the module.
+
 ---
