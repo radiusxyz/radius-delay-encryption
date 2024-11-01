@@ -33,129 +33,153 @@ import { pvde, skde } from "./radius-delay-encryption";
 await pvde.ensureInitialized();
 await skde.ensureInitialized();
 ```
+---
 
 ## Usage
 
 ### Time-Lock Puzzle Operations (pvde)
 
-The `pvde` module provides functionality for creating and verifying time-lock puzzles, allowing for time-delayed decryption of messages.
+The `pvde` module provides functionality for creating, proving, and verifying time-lock puzzles, enabling time-delayed decryption of messages with Zero-Knowledge Proof (ZKP) for security.
 
 #### Generating Time-Lock Puzzle Parameters
 
-Generate parameters for creating a time-lock puzzle:
+To create a time-lock puzzle, start by generating the required cryptographic parameters:
 
 ```javascript
-const params = await pvde.generateTimeLockPuzzleParam();
+const timeLockPuzzleParam = await pvde.generateTimeLockPuzzleParam();
 ```
+
+- **Output**: An object containing fields like `g`, `n`, `t`, `y`, and `yTwo`, where each field represents specific cryptographic values and configurations required for the time-lock puzzle.
 
 #### Creating a Time-Lock Puzzle
 
-With generated parameters, create a time-lock puzzle:
+Use the generated parameters to create a time-lock puzzle. This step generates a puzzle alongside public and secret inputs for use in proof generation and verification:
 
 ```javascript
-const puzzle = await pvde.generateTimeLockPuzzle(params);
+const [timeLockPuzzleSecretInput, timeLockPuzzlePublicInput] = await pvde.generateTimeLockPuzzle(timeLockPuzzleParam);
 ```
+
+- **Inputs**: `timeLockPuzzleParam` — Object containing values like `g`, `n`, `t`, `y`, and `yTwo`.
+- **Outputs**: An array with:
+  - `timeLockPuzzleSecretInput` — Contains `k`, a cryptographic key in array format.
+  - `timeLockPuzzlePublicInput` — Contains arrays for `kHashValue`, `kTwo`, `o`, `r1`, `r2`, and `z`, used in proof verification.
 
 #### Generating a Time-Lock Puzzle Proof
 
-Create a Zero-Knowledge Proof (ZKP) for a time-lock puzzle:
+Generate a Zero-Knowledge Proof (ZKP) to validate the time-lock puzzle. This proof ensures the puzzle was created correctly, without revealing the underlying secret key:
 
 ```javascript
-const proof = await pvde.generateTimeLockPuzzleProof(
-  zkpParam,
-  provingKey,
-  publicInput,
-  secretInput,
-  params
+const timeLockPuzzleProof = await pvde.generateTimeLockPuzzleProof(
+  timeLockPuzzleZkpParam,     // Uint8Array containing ZKP parameters
+  timeLockPuzzleZkpProvingKey, // Uint8Array containing ZKP proving key
+  timeLockPuzzlePublicInput,   // Public inputs for the puzzle
+  timeLockPuzzleSecretInput,   // Secret inputs for the puzzle
+  timeLockPuzzleParam          // Puzzle parameters
 );
 ```
+
+- **Output**: An object representing the generated ZKP for the time-lock puzzle.
 
 #### Verifying a Time-Lock Puzzle Proof
 
-Verify the ZKP for the time-lock puzzle to ensure validity:
+Verify the ZKP for the time-lock puzzle to confirm the validity of the generated puzzle without revealing any secret information:
 
 ```javascript
-const isValid = await pvde.verifyTimeLockPuzzleProof(
-  zkpParam,
-  verifyingKey,
-  publicInput,
-  params,
-  proof
+const isTimeLockPuzzleVerified = await pvde.verifyTimeLockPuzzleProof(
+  timeLockPuzzleZkpParam,      // Uint8Array with ZKP parameters
+  timeLockPuzzleZkpVerifyingKey, // Uint8Array with ZKP verifying key
+  timeLockPuzzlePublicInput,   // Public input data for verification
+  timeLockPuzzleParam,         // Puzzle parameters
+  timeLockPuzzleProof          // The proof object generated
 );
 ```
+
+- **Output**: A boolean indicating the success or failure of the verification process.
 
 #### Solving a Time-Lock Puzzle
 
-After verification, solve the puzzle to retrieve the symmetric key:
+After verifying the proof, solve the time-lock puzzle to retrieve the symmetric key, which is stored as an array of two arrays for use in encryption:
 
 ```javascript
-const symmetricKey = await pvde.solveTimeLockPuzzle(publicInput, params);
+const symmetricKey = await pvde.solveTimeLockPuzzle(
+  timeLockPuzzlePublicInput, // Public inputs required for solving
+  timeLockPuzzleParam        // Puzzle parameters
+);
 ```
+
+- **Output**: The symmetric key, returned as an array of two arrays, for encryption or decryption operations.
 
 ### Encryption Operations (pvde)
 
-The modules also support encryption and decryption operations using symmetric keys and zero-knowledge proof (ZKP) generation for encrypted messages.
+This module also supports encryption and decryption using the generated symmetric key, as well as ZKP generation and verification for encrypted messages to ensure data integrity and confidentiality.
+
+#### Generating a Symmetric Key
+
+Generate a symmetric encryption key from an input array. This key is used for encrypting and decrypting messages:
+
+```javascript
+const encryptionKey = await pvde.generateSymmetricKey(timeLockPuzzleSecretInput.k);
+```
+
+- **Output**: An array of two arrays, representing the symmetric encryption key.
 
 #### Encrypting a Message
 
-Encrypt a message using a provided encryption key:
+Encrypt a plaintext message using the symmetric encryption key generated in the previous step:
 
 ```javascript
-const encryptedMessage = await pvde.encryptMessage(message, encryptionKey);
+const encryptedMessage = await pvde.encryptMessage(
+  "Hello World",     // Message to encrypt
+  encryptionKey      // Symmetric key (array of two arrays)
+);
 ```
+
+- **Output**: A string representing the encrypted message (cipher text).
 
 #### Generating an Encryption Proof
 
-Create a ZKP to validate the encryption of a message:
+Create a ZKP for the encryption operation. This proof confirms the integrity and correctness of the encryption process without revealing the plaintext:
 
 ```javascript
 const encryptionProof = await pvde.generateEncryptionProof(
-  zkpParam,
-  provingKey,
-  publicInput,
-  secretInput
+  encryptionZkpParam,         // Uint8Array for encryption ZKP parameters
+  encryptionProvingKey,       // Uint8Array for encryption proving key
+  encryptionPublicInput,      // Object containing encryptedData (String) and kHashValue (array of two arrays)
+  encryptionSecretInput       // Object containing data (String) and k (array)
 );
 ```
+
+- **Output**: An object representing the ZKP for the encryption operation.
 
 #### Verifying an Encryption Proof
 
-Verify the ZKP for an encrypted message:
+Verify the ZKP for an encrypted message, ensuring the validity and integrity of the encryption without exposing any secret data:
 
 ```javascript
 const isValidEncryptionProof = await pvde.verifyEncryptionProof(
-  zkpParam,
-  verifyingKey,
-  publicInput,
-  encryptionProof
+  encryptionZkpParam,         // Uint8Array with encryption ZKP parameters
+  encryptionVerifyingKey,     // Uint8Array with encryption verifying key
+  encryptionPublicInput,      // Public inputs for encryption
+  encryptionProof             // Proof object for verification
 );
 ```
+
+- **Output**: A boolean indicating whether the encryption proof is valid.
 
 #### Decrypting a Message
 
-Decrypt an encrypted message using the symmetric key:
+Use the symmetric key to decrypt the previously encrypted message, recovering the original plaintext:
 
 ```javascript
-const decryptedMessage = await pvde.decryptCipher(cipher, symmetricKey);
-```
-
-### SKDE Encryption and Decryption
-
-The `skde` module provides lightweight symmetric key encryption and decryption functions, useful for secure message handling.
-
-#### Encrypting a Message (skde)
-
-Encrypt a message with the `skde` module using provided encryption parameters and key:
-
-```javascript
-const skdeParams = {
-  /* parameters specific to skde */
-};
-const encryptedMessage = await skde.encryptMessage(
-  skdeParams,
-  message,
-  encryptionKey
+const decryptedMessage = await pvde.decryptCipher(
+  cipher,                     // Encrypted message (cipher text)
+  decryptionKey               // Symmetric key (array of two arrays)
 );
 ```
+
+- **Output**: The decrypted plaintext message as a string.
+
+---
 
 #### Decrypting a Message (skde)
 
