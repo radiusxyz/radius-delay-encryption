@@ -54,11 +54,11 @@ pub fn encrypt(skde_params: JsValue, message: JsValue, encryption_key: JsValue) 
     };
 
     let skde_params = SkdeParams {
-        n: BigUint::from_str(&skde_params_json.n).unwrap(),
-        g: BigUint::from_str(&skde_params_json.g).unwrap(),
+        n: skde_params_json.n,
+        g: skde_params_json.g,
         t: skde_params_json.t,
-        h: BigUint::from_str(&skde_params_json.h).unwrap(),
-        max_sequencer_number: BigUint::from_str(&skde_params_json.max_sequencer_number).unwrap(),
+        h: skde_params_json.h,
+        max_sequencer_number: skde_params_json.max_sequencer_number,
     };
 
     log(&format!("skde_params: {:?}", skde_params));
@@ -72,7 +72,7 @@ pub fn encrypt(skde_params: JsValue, message: JsValue, encryption_key: JsValue) 
     };
 
     let encryption_key = PublicKey {
-        pk: BigUint::from_str(&encryption_key_json.pk).unwrap(),
+        pk: encryption_key_json.pk,
     };
 
     log(&format!("encryption_key: {:?}", encryption_key));
@@ -97,11 +97,11 @@ pub fn decrypt(skde_params: JsValue, ciphertext: JsValue, decryption_key: JsValu
     };
 
     let skde_params = SkdeParams {
-        n: BigUint::from_str(&skde_params_json.n).unwrap(),
-        g: BigUint::from_str(&skde_params_json.g).unwrap(),
+        n: skde_params_json.n,
+        g: skde_params_json.g,
         t: skde_params_json.t,
-        h: BigUint::from_str(&skde_params_json.h).unwrap(),
-        max_sequencer_number: BigUint::from_str(&skde_params_json.max_sequencer_number).unwrap(),
+        h: skde_params_json.h,
+        max_sequencer_number: skde_params_json.max_sequencer_number,
     };
 
     log(&format!("skde_params: {:?}", skde_params));
@@ -125,7 +125,7 @@ pub fn decrypt(skde_params: JsValue, ciphertext: JsValue, decryption_key: JsValu
     };
 
     let decryption_key = SecretKey {
-        sk: BigUint::from_str(&decryption_key_json.sk).unwrap(),
+        sk: decryption_key_json.sk,
     };
 
     log(&format!("decryption_key: {:?}", decryption_key));

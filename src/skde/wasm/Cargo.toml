@@ -15,7 +15,7 @@ rust-version = "1.76"
 
 # Cleaned dependencies for your project based on the provided code
 [dependencies]
-skde = { git = "https://github.com/radiusxyz/skde" } 
+skde = { git = "https://github.com/radiusxyz/skde", rev="3549a4da49053394d3f1aef58ddd2ab416585bbb"}
 serde = { version = "1.0.197", features = ["derive"] }
 serde-wasm-bindgen = "0.4"
 wasm-bindgen = { version = "0.2.81", features = ["serde-serialize"] }
