@@ -1,11 +1,6 @@
-use std::str::FromStr;
-
-use num_bigint::BigUint;
-use serde::{Deserialize, Serialize};
+use serde::Deserialize;
 use serde_wasm_bindgen::{from_value, to_value};
-use skde::delay_encryption::{
-    decrypt as decryptor, encrypt as encryptor, PublicKey, SecretKey, SkdeParams,
-};
+use skde::delay_encryption::{decrypt as decryptor, encrypt as encryptor, SkdeParams};
 use wasm_bindgen::{prelude::*, JsValue};
 
 #[derive(Deserialize)]
@@ -17,16 +12,6 @@ struct SkdeParamsJson {
     max_sequencer_number: String,
 }
 
-#[derive(Deserialize)]
-struct PublicKeyJson {
-    pk: String,
-}
-
-#[derive(Deserialize)]
-struct SecretKeyJson {
-    sk: String,
-}
-
 #[wasm_bindgen]
 extern "C" {
     #[wasm_bindgen(js_namespace = console)]
@@ -34,7 +19,7 @@ extern "C" {
 }
 
 #[wasm_bindgen]
-pub fn encrypt(skde_params: JsValue, message: JsValue, encryption_key: JsValue) -> JsValue {
+pub fn encrypt(skde_params: JsValue, message: JsValue, encryption_key: &str) -> JsValue {
     let message: String = match message.as_string() {
         Some(msg) => msg,
         None => {
@@ -63,18 +48,6 @@ pub fn encrypt(skde_params: JsValue, message: JsValue, encryption_key: JsValue) 
 
     log(&format!("skde_params: {:?}", skde_params));
 
-    let encryption_key_json: PublicKeyJson = match from_value(encryption_key) {
-        Ok(key) => key,
-        Err(e) => {
-            log(&format!("Failed to deserialize encryption_key: {:?}", e));
-            return JsValue::from_str("Error: Failed to deserialize encryption_key.");
-        }
-    };
-
-    let encryption_key = PublicKey {
-        pk: encryption_key_json.pk,
-    };
-
     log(&format!("encryption_key: {:?}", encryption_key));
 
     match encryptor(&skde_params, &message, &encryption_key) {
@@ -87,7 +60,7 @@ pub fn encrypt(skde_params: JsValue, message: JsValue, encryption_key: JsValue) 
 }
 
 #[wasm_bindgen]
-pub fn decrypt(skde_params: JsValue, ciphertext: JsValue, decryption_key: JsValue) -> JsValue {
+pub fn decrypt(skde_params: JsValue, ciphertext: JsValue, decryption_key: &str) -> JsValue {
     let skde_params_json: SkdeParamsJson = match from_value(skde_params) {
         Ok(params) => params,
         Err(e) => {
@@ -115,18 +88,6 @@ pub fn decrypt(skde_params: JsValue, ciphertext: JsValue, decryption_key: JsValu
     };
 
     log(&format!("ciphertext: {:?}", ciphertext));
-
-    let decryption_key_json: SecretKeyJson = match from_value(decryption_key) {
-        Ok(key) => key,
-        Err(e) => {
-            log(&format!("Failed to deserialize decryption_key: {:?}", e));
-            return JsValue::from_str("Error: Failed to deserialize decryption_key.");
-        }
-    };
-
-    let decryption_key = SecretKey {
-        sk: decryption_key_json.sk,
-    };
 
     log(&format!("decryption_key: {:?}", decryption_key));
 
